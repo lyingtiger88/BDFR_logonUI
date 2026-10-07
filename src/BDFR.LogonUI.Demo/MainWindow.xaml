@@ -160,18 +160,22 @@
                     </Border>
 
                     <StackPanel Grid.Row="2">
-                        <TextBlock Text="برنامه‌های امروز"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,9"/>
-                        <TextBlock Text="09:00   جلسه تیم محصول" Margin="0,5"/>
-                        <TextBlock Text="11:30   بررسی طرح‌های جدید" Margin="0,5"/>
-                        <TextBlock Text="15:00   پیگیری ایمیل‌ها" Margin="0,5"/>
-                        <TextBlock Text="Provider رویدادها در گام بعدی به Broker متصل می‌شود"
-                                   Foreground="#91ABC2"
-                                   FontSize="10"
-                                   Margin="0,9,0,0"
-                                   TextWrapping="Wrap"/>
+                        <DockPanel Margin="0,0,0,9">
+                            <TextBlock Text="برنامه‌های امروز"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock x:Name="AgendaBrokerStateText"
+                                       Text="Broker…"
+                                       FontSize="9"
+                                       Foreground="#91ABC2"
+                                       Margin="10,5,0,0"
+                                       FlowDirection="LeftToRight"/>
+                        </DockPanel>
+                        <StackPanel x:Name="AgendaItemsPanel">
+                            <TextBlock Text="در انتظار داده Anahita…"
+                                       Foreground="#AFC3D8"
+                                       Margin="0,5"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </local:EditableWidgetHost>
@@ -225,9 +229,10 @@
                     <Border BorderBrush="#33FFFFFF" BorderThickness="0,0,0,1" Padding="0,12">
                         <StackPanel>
                             <TextBlock Text="Anahita Calendar" FontSize="16" FontWeight="SemiBold"/>
-                            <TextBlock Text="۲ یادآوری امروز • محتوای خصوصی مخفی"
-                                       Foreground="#C7D3E0"
-                                       Margin="0,3,0,0"/>
+                            <StackPanel x:Name="CalendarNotificationPanel" Margin="0,4,0,0">
+                                <TextBlock Text="در انتظار Broker…"
+                                           Foreground="#C7D3E0"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
