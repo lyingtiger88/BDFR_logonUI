@@ -26,6 +26,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Run broker protocol smoke test
+        shell: pwsh
+        run: |
+          dotnet run --project tools/BDFR.LogonUI.Smoke/BDFR.LogonUI.Smoke.csproj -c Release
+
       - name: Publish standalone demo
         shell: pwsh
         run: |
