@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using BDFR.LogonUI.Contracts;
 
 namespace BDFR.LogonUI.Demo;
 
@@ -18,8 +19,12 @@ public partial class MainWindow : Window
     private readonly SystemTelemetryService _telemetry = new();
     private readonly SeasonalBackgroundService _backgrounds = new();
     private readonly AnahitaCalendarService _calendar = new();
+    private readonly CalendarBrokerClient _broker = new();
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
+    private readonly DispatcherTimer _brokerTimer;
+
+    private bool _brokerRefreshInFlight;
 
     private bool _editMode = true;
     private bool _fullScreen;
@@ -38,15 +43,19 @@ public partial class MainWindow : Window
         _telemetryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _telemetryTimer.Tick += (_, _) => UpdateTelemetry();
 
+        _brokerTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(12) };
+        _brokerTimer.Tick += async (_, _) => await RefreshBrokerCalendarAsync();
+
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
             _clockTimer.Stop();
             _telemetryTimer.Stop();
+            _brokerTimer.Stop();
         };
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         var now = DateTime.Now;
 
@@ -62,6 +71,19 @@ public partial class MainWindow : Window
 
         _clockTimer.Start();
         _telemetryTimer.Start();
+
+        AgendaBrokerStateText.Text = "Broker…";
+        if (await _broker.EnsureBrokerAsync())
+        {
+            AgendaBrokerStateText.Text = "Broker ✓";
+            await RefreshBrokerCalendarAsync();
+            _brokerTimer.Start();
+        }
+        else
+        {
+            AgendaBrokerStateText.Text = "Broker offline";
+            ShowBrokerOfflineState();
+        }
     }
 
     private IEnumerable<EditableWidgetHost> Widgets() =>
@@ -173,6 +195,146 @@ public partial class MainWindow : Window
 
         cell.Child = grid;
         return cell;
+    }
+
+    private async Task RefreshBrokerCalendarAsync()
+    {
+        if (_brokerRefreshInFlight)
+            return;
+
+        _brokerRefreshInFlight = true;
+
+        try
+        {
+            var snapshot = await _broker.ReadCalendarAsync(isLocked: true);
+            if (snapshot is null)
+            {
+                AgendaBrokerStateText.Text = "Anahita: بدون Snapshot";
+                ShowBrokerOfflineState();
+                return;
+            }
+
+            AgendaBrokerStateText.Text = "Anahita ✓";
+            RenderAgenda(snapshot);
+            RenderCalendarNotifications(snapshot);
+        }
+        catch
+        {
+            AgendaBrokerStateText.Text = "Broker offline";
+            ShowBrokerOfflineState();
+        }
+        finally
+        {
+            _brokerRefreshInFlight = false;
+        }
+    }
+
+    private void RenderAgenda(CalendarLockSnapshot snapshot)
+    {
+        AgendaItemsPanel.Children.Clear();
+
+        var items = snapshot.Agenda
+            .OrderBy(x => x.AllDay ? 0 : 1)
+            .ThenBy(x => x.StartsAt)
+            .Take(5)
+            .ToArray();
+
+        if (items.Length == 0)
+        {
+            AgendaItemsPanel.Children.Add(new TextBlock
+            {
+                Text = "برای امروز برنامه‌ای منتشر نشده است",
+                Foreground = new SolidColorBrush(Color.FromRgb(175, 195, 216)),
+                Margin = new Thickness(0, 5, 0, 0)
+            });
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            var row = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(58) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var timeText = item.AllDay
+                ? "همه‌روز"
+                : item.StartsAt?.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture) ?? "—";
+
+            var time = new TextBlock
+            {
+                Text = timeText,
+                Foreground = new SolidColorBrush(Color.FromRgb(160, 184, 207)),
+                FontSize = 11,
+                FlowDirection = FlowDirection.LeftToRight
+            };
+
+            var title = new TextBlock
+            {
+                Text = item.Title,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                FontSize = 13,
+                FlowDirection = FlowDirection.RightToLeft
+            };
+
+            Grid.SetColumn(time, 0);
+            Grid.SetColumn(title, 1);
+            row.Children.Add(time);
+            row.Children.Add(title);
+            AgendaItemsPanel.Children.Add(row);
+        }
+    }
+
+    private void RenderCalendarNotifications(CalendarLockSnapshot snapshot)
+    {
+        CalendarNotificationPanel.Children.Clear();
+
+        var reminders = snapshot.Reminders
+            .OrderBy(x => x.FireAtUtc)
+            .Take(3)
+            .ToArray();
+
+        if (reminders.Length == 0)
+        {
+            CalendarNotificationPanel.Children.Add(new TextBlock
+            {
+                Text = "یادآوری فعالی برای نمایش وجود ندارد",
+                Foreground = new SolidColorBrush(Color.FromRgb(199, 211, 224)),
+                FontSize = 12
+            });
+            return;
+        }
+
+        foreach (var reminder in reminders)
+        {
+            CalendarNotificationPanel.Children.Add(new TextBlock
+            {
+                Text = $"{reminder.FireAtUtc.ToLocalTime():HH:mm}  {reminder.Title}",
+                Foreground = new SolidColorBrush(Color.FromRgb(199, 211, 224)),
+                FontSize = 12,
+                Margin = new Thickness(0, 2, 0, 2),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+        }
+    }
+
+    private void ShowBrokerOfflineState()
+    {
+        AgendaItemsPanel.Children.Clear();
+        AgendaItemsPanel.Children.Add(new TextBlock
+        {
+            Text = "Anahita هنوز Snapshot تازه‌ای به Broker نداده است",
+            Foreground = new SolidColorBrush(Color.FromRgb(145, 171, 194)),
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        CalendarNotificationPanel.Children.Clear();
+        CalendarNotificationPanel.Children.Add(new TextBlock
+        {
+            Text = "داده تقویم در دسترس نیست",
+            Foreground = new SolidColorBrush(Color.FromRgb(199, 211, 224)),
+            FontSize = 12
+        });
     }
 
     private void UpdateTelemetry()
