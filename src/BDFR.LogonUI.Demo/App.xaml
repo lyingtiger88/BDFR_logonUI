@@ -3,6 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:BDFR.LogonUI.Demo">
     <Application.Resources>
+        <SolidColorBrush x:Key="GlassSurfaceBrush" Color="#A8182433"/>
+        <SolidColorBrush x:Key="GlassBorderBrush" Color="#52FFFFFF"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
         <Style TargetType="{x:Type local:EditableWidgetHost}">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -12,10 +20,16 @@
                     <ControlTemplate TargetType="{x:Type local:EditableWidgetHost}">
                         <Grid>
                             <Border x:Name="PART_Surface"
-                                    Background="#B8212A38"
-                                    BorderBrush="#55FFFFFF"
+                                    Background="{StaticResource GlassSurfaceBrush}"
+                                    BorderBrush="{StaticResource GlassBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="20">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000"
+                                                      BlurRadius="26"
+                                                      ShadowDepth="0"
+                                                      Opacity=".42"/>
+                                </Border.Effect>
                                 <Viewbox Stretch="Uniform"
                                          StretchDirection="Both"
                                          HorizontalAlignment="Stretch"
@@ -35,7 +49,7 @@
                             <Rectangle x:Name="PART_Selection"
                                        Margin="-4"
                                        RadiusX="22" RadiusY="22"
-                                       Stroke="#4EA1FF"
+                                       Stroke="#65B7FF"
                                        StrokeThickness="2"
                                        StrokeDashArray="4 3"
                                        IsHitTestVisible="False"
@@ -72,6 +86,11 @@
 
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="PART_Selection" Property="StrokeThickness" Value="3"/>
+                                <Setter TargetName="PART_Selection" Property="Stroke" Value="#8AC8FF"/>
+                            </Trigger>
+
+                            <Trigger Property="IsLayoutLocked" Value="True">
+                                <Setter TargetName="PART_Surface" Property="BorderBrush" Value="#34FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
