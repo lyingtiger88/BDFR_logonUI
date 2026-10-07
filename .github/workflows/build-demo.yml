@@ -1,19 +1,20 @@
-name: Build standalone demo
+name: Build and publish standalone demo
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'src/BDFR.LogonUI.Demo/**'
-      - 'Directory.Build.props'
-      - '.github/workflows/build-demo.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   publish-win-x64:
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -21,15 +22,85 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish standalone demo
-        run: dotnet publish src/BDFR.LogonUI.Demo/BDFR.LogonUI.Demo.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugSymbols=false -p:DebugType=None -o artifacts/BDFR_LogonUI_Demo
-
-      - name: Show publish output
         shell: pwsh
-        run: Get-ChildItem artifacts/BDFR_LogonUI_Demo -Recurse | Select-Object FullName, Length
+        run: |
+          dotnet publish src/BDFR.LogonUI.Demo/BDFR.LogonUI.Demo.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:DebugSymbols=false `
+            -p:DebugType=None `
+            -o artifacts/BDFR_LogonUI_Demo
 
-      - name: Upload executable artifact
+      - name: Prepare permanent build package
+        shell: pwsh
+        run: |
+          $shortSha = (git rev-parse --short=8 HEAD).Trim()
+          $tag = "build-${{ github.run_number }}-attempt-${{ github.run_attempt }}-$shortSha"
+          $baseName = "BDFR_LogonUI_Demo-$tag-win-x64"
+          $zipPath = "artifacts/$baseName.zip"
+          $exePath = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Demo.exe"
+          $hashPath = "artifacts/$baseName.sha256.txt"
+
+          if (-not (Test-Path $exePath)) {
+            throw "Published executable was not found at $exePath"
+          }
+
+          Compress-Archive -Path "artifacts/BDFR_LogonUI_Demo/*" -DestinationPath $zipPath -Force
+
+          $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $baseName.zip" | Set-Content -Path $hashPath -Encoding ascii
+
+          "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "ZIP_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HASH_PATH=$hashPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "BASE_NAME=$baseName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "Prepared tag: $tag"
+          Write-Host "ZIP: $zipPath"
+          Write-Host "SHA256: $hash"
+
+      - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BDFR_LogonUI_Demo-win-x64
-          path: artifacts/BDFR_LogonUI_Demo/
+          name: ${{ env.BASE_NAME }}
+          path: |
+            ${{ env.ZIP_PATH }}
+            ${{ env.HASH_PATH }}
           if-no-files-found: error
+
+      - name: Publish permanent GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          Automated BDFR LogonUI standalone test build.
+
+          Commit: ${{ github.sha }}
+          Workflow run: #${{ github.run_number }}
+          Attempt: ${{ github.run_attempt }}
+          Platform: Windows x64
+          Packaging: self-contained single-file .NET 10 executable
+          Safety mode: standalone demo; does not replace or register Windows LogonUI/Credential Provider.
+          "@
+
+          gh release create "$env:TAG" `
+            "$env:ZIP_PATH" `
+            "$env:HASH_PATH" `
+            --repo "${{ github.repository }}" `
+            --target "${{ github.sha }}" `
+            --title "BDFR LogonUI Build #${{ github.run_number }} (attempt ${{ github.run_attempt }})" `
+            --notes "$notes" `
+            --prerelease
+
+      - name: Build summary
+        shell: pwsh
+        run: |
+          "### Published build" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "- Release tag: $env:TAG" >> $env:GITHUB_STEP_SUMMARY
+          "- ZIP: $env:BASE_NAME.zip" >> $env:GITHUB_STEP_SUMMARY
+          "- SHA256 file: $env:BASE_NAME.sha256.txt" >> $env:GITHUB_STEP_SUMMARY
+          "- GitHub Releases keeps this build permanently until explicitly deleted." >> $env:GITHUB_STEP_SUMMARY
