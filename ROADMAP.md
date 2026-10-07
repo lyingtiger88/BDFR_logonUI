@@ -30,7 +30,7 @@ The first usable build must run as a normal Windows desktop executable. It must 
 - [ ] Verify the GitHub Actions build artifact on Windows 10.
 - [ ] Verify the GitHub Actions build artifact on Windows 11.
 - [ ] Connect the standalone UI to the broker instead of demo data.
-- [ ] Add wallpaper/theme selection UI.
+- [x] Add custom wallpaper selection and Elena seasonal-background controls.
 
 **Exit criteria:** the user can download/run a test executable, rearrange/resize widgets, save the layout, exit normally, and remove it simply by deleting the executable/folder.
 
@@ -52,12 +52,12 @@ The first usable build must run as a normal Windows desktop executable. It must 
 **Target: production-quality visual shell**
 
 - Promote the validated standalone UI into the shared experience layer.
-- Clock and dual Gregorian/Persian date.
-- Full-screen background engine.
-- Glass/Acrylic cards with accessibility fallbacks.
+- [x] Clock plus Persian, Gregorian and Hijri date presentation.
+- [x] Full-screen custom/seasonal background engine in the standalone shell.
+- [x] Initial glass card visual system; accessibility fallback refinement remains.
 - Multi-monitor and DPI-aware layout.
-- Editable widget host, grid snapping and smart guides.
-- Power/network/system-status widgets.
+- [x] Editable widget host, resize/drag, layout lock and grid snapping.\n- Smart alignment guides remain.
+- [x] Live CPU/RAM/battery, network and power status widgets.
 - Offline-first startup.
 
 **Exit criteria:** a stable dashboard can render broker data without requiring sign-in integration.
@@ -67,9 +67,9 @@ The first usable build must run as a normal Windows desktop executable. It must 
 
 - Extract calendar/event provider contract.
 - Import Persian date/event data from the existing calendar app.
-- Seasonal background provider.
-- Support the existing seasonal background naming convention, e.g. `Spring_16x9`.
-- Elena Mode integration: automatic seasonal background selection.
+- [x] Seasonal background provider in the standalone shell.
+- [x] Support the existing seasonal background naming convention, e.g. `Spring_16x9`.
+- [x] Elena Mode integration: automatic seasonal background selection.
 - Accent-color selection independent from seasonal mode.
 - Reminder/event visibility policy while locked.
 - Local event cache for offline display.
