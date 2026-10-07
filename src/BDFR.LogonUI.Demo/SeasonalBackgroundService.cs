@@ -96,7 +96,7 @@ public sealed class SeasonalBackgroundService
         if (!string.IsNullOrWhiteSpace(_settings.CustomPath) && File.Exists(_settings.CustomPath))
             return _settings.CustomPath;
 
-        return FindSeasonal(GetSeason(now));
+        return null;
     }
 
     private string? FindSeasonal(string season)
