@@ -1,17 +1,29 @@
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Net.NetworkInformation;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace BDFR.LogonUI.Demo;
 
 public partial class MainWindow : Window
 {
     private readonly LayoutPersistenceService _layout = new();
+    private readonly SystemTelemetryService _telemetry = new();
+    private readonly SeasonalBackgroundService _backgrounds = new();
+    private readonly AnahitaCalendarService _calendar = new();
     private readonly DispatcherTimer _clockTimer;
+    private readonly DispatcherTimer _telemetryTimer;
+
     private bool _editMode = true;
     private bool _fullScreen;
+    private DateTime _calendarDate;
     private WindowStyle _previousStyle;
     private WindowState _previousState;
     private ResizeMode _previousResizeMode;
@@ -22,16 +34,34 @@ public partial class MainWindow : Window
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += (_, _) => UpdateClock();
-        _clockTimer.Start();
 
-        Loaded += (_, _) =>
+        _telemetryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _telemetryTimer.Tick += (_, _) => UpdateTelemetry();
+
+        Loaded += OnLoaded;
+        Closed += (_, _) =>
         {
-            UpdateClock();
-            _layout.TryLoad(Widgets());
-            SetEditMode(true);
+            _clockTimer.Stop();
+            _telemetryTimer.Stop();
         };
+    }
 
-        Closed += (_, _) => _clockTimer.Stop();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        var now = DateTime.Now;
+
+        UpdateClock();
+        BuildCalendar(now);
+        RefreshBackground(now);
+
+        _telemetry.Read();
+        UpdateTelemetry();
+
+        var hasSavedLayout = _layout.TryLoad(Widgets());
+        SetEditMode(!hasSavedLayout);
+
+        _clockTimer.Start();
+        _telemetryTimer.Start();
     }
 
     private IEnumerable<EditableWidgetHost> Widgets() =>
@@ -40,51 +70,218 @@ public partial class MainWindow : Window
     private void UpdateClock()
     {
         var now = DateTime.Now;
+
         ClockText.Text = now.ToString("HH:mm", CultureInfo.InvariantCulture);
-        GregorianDateText.Text = now.ToString("MMMM d, yyyy", CultureInfo.GetCultureInfo("en-US"));
+        PersianDateText.Text = _calendar.PersianFullDate(now);
+        GregorianDateText.Text = _calendar.GregorianFullDate(now);
+        HijriDateText.Text = _calendar.HijriFullDate(now);
 
-        var pc = new PersianCalendar();
-        var year = pc.GetYear(now);
-        var month = pc.GetMonth(now);
-        var day = pc.GetDayOfMonth(now);
-
-        var months = new[]
+        if (_calendarDate != now.Date)
         {
-            "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-            "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+            BuildCalendar(now);
+            RefreshBackground(now);
+        }
+    }
+
+    private void BuildCalendar(DateTime now)
+    {
+        _calendarDate = now.Date;
+        PersianMonthText.Text = _calendar.PersianMonthTitle(now);
+        TodaySecondaryDatesText.Text =
+            $"میلادی {_calendar.GregorianFullDate(now)}  •  قمری {_calendar.HijriFullDate(now)}";
+
+        CalendarDaysGrid.Children.Clear();
+
+        foreach (var day in _calendar.BuildMonth(now))
+            CalendarDaysGrid.Children.Add(CreateDayCell(day));
+    }
+
+    private static Border CreateDayCell(AnahitaCalendarDay day)
+    {
+        var background = day.IsToday
+            ? new SolidColorBrush(Color.FromArgb(205, 45, 127, 240))
+            : Brushes.Transparent;
+
+        if (background.CanFreeze)
+            background.Freeze();
+
+        var cell = new Border
+        {
+            Margin = new Thickness(1.5),
+            Padding = new Thickness(2),
+            CornerRadius = new CornerRadius(7),
+            Background = background,
+            Opacity = day.IsCurrentPersianMonth ? 1 : .34,
+            ToolTip = day.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
         };
 
-        var days = new Dictionary<DayOfWeek, string>
+        var grid = new Grid
         {
-            [DayOfWeek.Saturday] = "شنبه",
-            [DayOfWeek.Sunday] = "یکشنبه",
-            [DayOfWeek.Monday] = "دوشنبه",
-            [DayOfWeek.Tuesday] = "سه‌شنبه",
-            [DayOfWeek.Wednesday] = "چهارشنبه",
-            [DayOfWeek.Thursday] = "پنجشنبه",
-            [DayOfWeek.Friday] = "جمعه"
+            FlowDirection = FlowDirection.LeftToRight
         };
 
-        PersianDateText.Text = $"{days[now.DayOfWeek]}، {day} {months[month]} {year}";
-        PersianMonthText.Text = $"{months[month]} {year}";
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var persianDay = new TextBlock
+        {
+            Text = AnahitaCalendarService.ToPersianDigits(day.PersianDay.ToString(CultureInfo.InvariantCulture)),
+            FontSize = 14,
+            FontWeight = day.IsToday ? FontWeights.SemiBold : FontWeights.Normal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            FlowDirection = FlowDirection.RightToLeft
+        };
+
+        var secondary = new Grid
+        {
+            Margin = new Thickness(2, 0, 2, 1),
+            FlowDirection = FlowDirection.LeftToRight
+        };
+
+        secondary.ColumnDefinitions.Add(new ColumnDefinition());
+        secondary.ColumnDefinitions.Add(new ColumnDefinition());
+
+        var gregorian = new TextBlock
+        {
+            Text = day.GregorianDay.ToString(CultureInfo.InvariantCulture),
+            FontSize = 7.5,
+            Foreground = new SolidColorBrush(Color.FromRgb(165, 205, 238)),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            FlowDirection = FlowDirection.LeftToRight
+        };
+
+        var hijri = new TextBlock
+        {
+            Text = AnahitaCalendarService.ToArabicIndicDigits(day.HijriDay.ToString(CultureInfo.InvariantCulture)),
+            FontFamily = new FontFamily("Traditional Arabic"),
+            FontSize = 8.5,
+            Foreground = new SolidColorBrush(Color.FromRgb(199, 211, 224)),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            FlowDirection = FlowDirection.RightToLeft
+        };
+
+        Grid.SetColumn(gregorian, 0);
+        Grid.SetColumn(hijri, 1);
+        secondary.Children.Add(gregorian);
+        secondary.Children.Add(hijri);
+
+        Grid.SetRow(persianDay, 0);
+        Grid.SetRow(secondary, 1);
+        grid.Children.Add(persianDay);
+        grid.Children.Add(secondary);
+
+        cell.Child = grid;
+        return cell;
+    }
+
+    private void UpdateTelemetry()
+    {
+        try
+        {
+            var snapshot = _telemetry.Read();
+
+            AnimateGauge(CpuGauge, snapshot.CpuPercent, true);
+            AnimateGauge(RamGauge, snapshot.MemoryPercent, true);
+
+            var hasBattery = snapshot.BatteryPercent.HasValue;
+            AnimateGauge(BatteryGauge, snapshot.BatteryPercent ?? 0, hasBattery);
+            BatteryGauge.Label = hasBattery
+                ? snapshot.IsOnAcPower ? "باتری • AC" : "باتری"
+                : "باتری • N/A";
+
+            TelemetryStatusText.Text =
+                $"LIVE • RAM آزاد {snapshot.AvailableMemoryMb / 1024d:0.0} GB";
+
+            NetworkStatusText.Text = NetworkInterface.GetIsNetworkAvailable()
+                ? "Network ✓"
+                : "Offline";
+
+            PowerStatusText.Text = hasBattery
+                ? snapshot.IsOnAcPower ? "AC ✓" : "Battery"
+                : "Desktop";
+        }
+        catch
+        {
+            TelemetryStatusText.Text = "Telemetry unavailable";
+            CpuGauge.IsAvailable = false;
+            RamGauge.IsAvailable = false;
+            BatteryGauge.IsAvailable = false;
+        }
+    }
+
+    private static void AnimateGauge(BDFRGauge gauge, double target, bool available)
+    {
+        gauge.IsAvailable = available;
+
+        if (!available)
+        {
+            gauge.BeginAnimation(BDFRGauge.ValueProperty, null);
+            gauge.Value = 0;
+            return;
+        }
+
+        target = Math.Clamp(target, 0, 100);
+        var from = Math.Clamp(gauge.Value, 0, 100);
+
+        gauge.BeginAnimation(BDFRGauge.ValueProperty, null);
+        gauge.Value = target;
+
+        var animation = new DoubleAnimation
+        {
+            From = from,
+            To = target,
+            Duration = TimeSpan.FromMilliseconds(420),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            FillBehavior = FillBehavior.Stop
+        };
+
+        gauge.BeginAnimation(BDFRGauge.ValueProperty, animation, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    private void RefreshBackground(DateTime? at = null)
+    {
+        var now = at ?? DateTime.Now;
+        var image = _backgrounds.Resolve(now);
+
+        BackgroundImage.Source = image;
+        BackgroundImage.Visibility = image is null ? Visibility.Collapsed : Visibility.Visible;
+
+        ElenaButton.Content = _backgrounds.ElenaMode
+            ? "Elena: روشن"
+            : "Elena: خاموش";
+
+        var activeName = string.IsNullOrWhiteSpace(_backgrounds.ActivePath)
+            ? "بدون فایل تصویری"
+            : Path.GetFileName(_backgrounds.ActivePath);
+
+        BackgroundModeText.Text = $"{_backgrounds.CurrentModeLabel(now)} • {activeName}";
     }
 
     private void SetEditMode(bool enabled)
     {
         _editMode = enabled;
+
         foreach (var widget in Widgets())
         {
             widget.IsEditMode = enabled;
+            widget.IsLayoutLocked = !enabled;
             widget.IsSelected = false;
         }
 
-        EditStateText.Text = enabled ? "حالت ویرایش فعال" : "چیدمان قفل است";
+        EditGridOverlay.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+
+        EditStateText.Text = enabled
+            ? "حالت ویرایش فعال"
+            : "چیدمان قفل است";
+
         EditStateText.Foreground = enabled
-            ? System.Windows.Media.Brushes.LightSkyBlue
-            : System.Windows.Media.Brushes.LightGreen;
+            ? Brushes.LightSkyBlue
+            : Brushes.LightGreen;
     }
 
-    private void EditMode_Click(object sender, RoutedEventArgs e) => SetEditMode(!_editMode);
+    private void EditMode_Click(object sender, RoutedEventArgs e) =>
+        SetEditMode(!_editMode);
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
@@ -113,7 +310,59 @@ public partial class MainWindow : Window
         EditStateText.Text = "چیدمان پیش‌فرض بازیابی شد";
     }
 
-    private static void Place(EditableWidgetHost widget, double left, double top, double width, double height)
+    private void Background_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "انتخاب پس‌زمینه BDFR LogonUI",
+            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp|JPEG|*.jpg;*.jpeg|PNG|*.png|Bitmap|*.bmp",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != true)
+            return;
+
+        try
+        {
+            _backgrounds.ImportCustom(dialog.FileName);
+            RefreshBackground();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                ex.Message,
+                "BDFR LogonUI",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private void Elena_Click(object sender, RoutedEventArgs e)
+    {
+        _backgrounds.SetElenaMode(!_backgrounds.ElenaMode);
+        RefreshBackground();
+    }
+
+    private void OpenBackgroundFolder_Click(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(_backgrounds.BackgroundFolder);
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $""{_backgrounds.BackgroundFolder}"",
+            UseShellExecute = true
+        });
+    }
+
+    private static void Place(
+        EditableWidgetHost widget,
+        double left,
+        double top,
+        double width,
+        double height)
     {
         Canvas.SetLeft(widget, left);
         Canvas.SetTop(widget, top);
@@ -121,7 +370,8 @@ public partial class MainWindow : Window
         widget.Height = height;
     }
 
-    private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
+    private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
+        ToggleFullscreen();
 
     private void ToggleFullscreen()
     {
@@ -130,6 +380,7 @@ public partial class MainWindow : Window
             _previousStyle = WindowStyle;
             _previousState = WindowState;
             _previousResizeMode = ResizeMode;
+
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
             WindowState = WindowState.Maximized;
@@ -144,7 +395,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+    private void Exit_Click(object sender, RoutedEventArgs e) =>
+        Close();
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
