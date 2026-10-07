@@ -5,6 +5,8 @@
     <Application.Resources>
         <Style TargetType="{x:Type local:EditableWidgetHost}">
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type local:EditableWidgetHost}">
@@ -13,9 +15,21 @@
                                     Background="#B8212A38"
                                     BorderBrush="#55FFFFFF"
                                     BorderThickness="1"
-                                    CornerRadius="20"
-                                    Padding="18">
-                                <ContentPresenter/>
+                                    CornerRadius="20">
+                                <Viewbox Stretch="Uniform"
+                                         StretchDirection="Both"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Stretch">
+                                    <Grid Width="{TemplateBinding DesignWidth}"
+                                          Height="{TemplateBinding DesignHeight}">
+                                        <ContentPresenter
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            Margin="18"/>
+                                    </Grid>
+                                </Viewbox>
                             </Border>
 
                             <Rectangle x:Name="PART_Selection"
@@ -45,6 +59,7 @@
                                 </Thumb.Template>
                             </Thumb>
                         </Grid>
+
                         <ControlTemplate.Triggers>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
@@ -54,6 +69,7 @@
                                 <Setter TargetName="PART_Selection" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="PART_ResizeThumb" Property="Visibility" Value="Visible"/>
                             </MultiTrigger>
+
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="PART_Selection" Property="StrokeThickness" Value="3"/>
                             </Trigger>
