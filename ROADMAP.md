@@ -35,16 +35,17 @@ The first usable build must run as a normal Windows desktop executable. It must 
 **Exit criteria:** the user can download/run a test executable, rearrange/resize widgets, save the layout, exit normally, and remove it simply by deleting the executable/folder.
 
 ## Milestone 1 — Contracts + local broker
-**Target: broker-backed standalone demo**
+**Status: in progress — broker-backed standalone path is working**
 
-- Define versioned widget manifest.
-- Define notification model and privacy levels.
-- Define provider registration and heartbeat model.
-- Build broker as a local Windows service/host.
-- Use local authenticated IPC; Named Pipes are the preferred transport.
-- Reject unauthenticated or malformed provider payloads.
-- Add a read-only mock provider for development.
-- Feed sanitized snapshots into the standalone demo.
+- [x] Define versioned widget/calendar contracts.
+- [x] Define notification model and privacy levels.
+- [ ] Define provider registration and heartbeat model.
+- [x] Build the first local broker host.
+- [x] Implement current-user Named Pipe transport.
+- [x] Add provider allow-list / identity matching, payload bounds and publish throttling.
+- [ ] Add service-grade publisher executable/signature authorization.
+- [x] Add provider -> broker -> reader Named Pipe smoke test.
+- [x] Feed sanitized Anahita snapshots into the standalone demo.
 
 **Exit criteria:** a sample provider can publish status to the broker and the standalone experience can render it.
 
@@ -63,16 +64,19 @@ The first usable build must run as a normal Windows desktop executable. It must 
 **Exit criteria:** a stable dashboard can render broker data without requiring sign-in integration.
 
 ## Milestone 3 — Persian Calendar integration
-**Target: integration with the existing calendar application**
+**Status: in progress — Anahita bridge is operational**
 
-- Extract calendar/event provider contract.
-- Import Persian date/event data from the existing calendar app.
+- [x] Extract calendar/event provider contract.
+- [x] Publish Persian/Gregorian/Hijri date data from Anahita.
+- [x] Publish official occasions, user events, incomplete tasks and pending reminders.
+- [x] Route Anahita data through the broker instead of opening its SQLite database from LogonUI.
 - [x] Seasonal background provider in the standalone shell.
 - [x] Support the existing seasonal background naming convention, e.g. `Spring_16x9`.
 - [x] Elena Mode integration: automatic seasonal background selection.
-- Accent-color selection independent from seasonal mode.
-- Reminder/event visibility policy while locked.
-- Local event cache for offline display.
+- [ ] Accent-color selection independent from seasonal mode.
+- [x] Lock privacy policy: Public visible, Private masked, Secret omitted.
+- [x] Persist only a privacy-filtered safe cache for offline lock display.
+- [ ] Add per-item Public / Private / Secret controls to Anahita's own data model/settings.
 
 **Exit criteria:** calendar, events, seasonal themes, and reminders render from the shared provider model.
 
