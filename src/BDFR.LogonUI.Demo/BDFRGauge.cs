@@ -23,10 +23,20 @@ public sealed class BDFRGauge : FrameworkElement
         set => SetValue(ValueProperty, value);
     }
 
+    public static readonly DependencyProperty IsAvailableProperty =
+        DependencyProperty.Register(nameof(IsAvailable), typeof(bool), typeof(BDFRGauge),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
     public string Label
     {
         get => (string)GetValue(LabelProperty);
         set => SetValue(LabelProperty, value);
+    }
+
+    public bool IsAvailable
+    {
+        get => (bool)GetValue(IsAvailableProperty);
+        set => SetValue(IsAvailableProperty, value);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -84,14 +94,16 @@ public sealed class BDFRGauge : FrameworkElement
         }
 
         var normalized = Math.Clamp(Value, 0, 100);
-        var markerAngle = start + sweep * (normalized / 100d);
-        var markerInner = PointOnCircle(center, radius - markerHalfLength, markerAngle);
-        var markerOuter = PointOnCircle(center, radius + markerHalfLength, markerAngle);
-
-        dc.DrawLine(NewPen(Color.FromRgb(17, 35, 62), markerThickness), markerInner, markerOuter);
+        if (IsAvailable)
+        {
+            var markerAngle = start + sweep * (normalized / 100d);
+            var markerInner = PointOnCircle(center, radius - markerHalfLength, markerAngle);
+            var markerOuter = PointOnCircle(center, radius + markerHalfLength, markerAngle);
+            dc.DrawLine(NewPen(Color.FromRgb(17, 35, 62), markerThickness), markerInner, markerOuter);
+        }
 
         var valueFontSize = Math.Clamp(radius * .47, 13, 66);
-        var valueText = Text($"{normalized:0}%", valueFontSize, Brushes.White, dpi, FontWeights.SemiBold);
+        var valueText = Text(IsAvailable ? $"{normalized:0}%" : "—", valueFontSize, Brushes.White, dpi, FontWeights.SemiBold);
         dc.DrawText(valueText, new Point(center.X - valueText.Width / 2, center.Y - valueText.Height * .34));
 
         var labelText = Text(Label, labelFontSize, Brushes.Gainsboro, dpi);
