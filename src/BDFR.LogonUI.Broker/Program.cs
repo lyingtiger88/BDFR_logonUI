@@ -1,26 +1,29 @@
 using BDFR.LogonUI.Broker;
-using BDFR.LogonUI.Contracts;
 
-var registry = new WidgetRegistry();
-var now = DateTimeOffset.UtcNow;
+using var singleInstance = new Mutex(
+    initiallyOwned: true,
+    name: @"Local\BDFR.LogonUI.Broker",
+    createdNew: out var createdNew);
 
-registry.Upsert(new WidgetSnapshot(
-    ProviderId: "bdfr.demo",
-    WidgetId: "system-status",
-    UpdatedAtUtc: now,
-    ExpiresAtUtc: now.AddMinutes(5),
-    Privacy: PrivacyLevel.Public,
-    Fields: new Dictionary<string, string>
-    {
-        ["cpu"] = "7%",
-        ["ram"] = "38%",
-        ["network"] = "Connected"
-    }));
+if (!createdNew)
+    return;
 
-Console.WriteLine("BDFR LogonUI broker prototype");
-foreach (var widget in registry.GetActive(DateTimeOffset.UtcNow, isLocked: true))
+using var shutdown = new CancellationTokenSource();
+
+Console.CancelKeyPress += (_, e) =>
 {
-    Console.WriteLine($"{widget.ProviderId}/{widget.WidgetId}");
-    foreach (var field in widget.Fields)
-        Console.WriteLine($"  {field.Key}: {field.Value}");
+    e.Cancel = true;
+    shutdown.Cancel();
+};
+
+var registry = new CalendarSnapshotRegistry();
+var server = new BrokerPipeServer(registry);
+
+try
+{
+    await server.RunAsync(shutdown.Token);
+}
+catch (OperationCanceledException)
+{
+    // Normal shutdown.
 }
