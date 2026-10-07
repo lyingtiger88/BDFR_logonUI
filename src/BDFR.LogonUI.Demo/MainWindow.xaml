@@ -252,33 +252,38 @@
             </local:EditableWidgetHost>
 
             <local:EditableWidgetHost x:Name="SystemHost" WidgetId="system-status"
-                                      Width="640" Height="245" DesignWidth="640" DesignHeight="245" MinWidth="320" MinHeight="123"
+                                      Width="640" Height="58" DesignWidth="640" DesignHeight="58" MinWidth="280" MinHeight="42"
                                       Canvas.Left="455" Canvas.Top="330">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <DockPanel VerticalAlignment="Center">
+                    <TextBlock Text="وضعیت سیستم"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               FlowDirection="RightToLeft"/>
+                    <TextBlock x:Name="TelemetryStatusText"
+                               Text="LIVE"
+                               Foreground="#77E3B8"
+                               FontSize="10"
+                               Margin="12,5,0,0"
+                               FlowDirection="LeftToRight"/>
+                </DockPanel>
+            </local:EditableWidgetHost>
 
-                    <DockPanel Margin="0,0,0,4">
-                        <TextBlock Text="وضعیت سیستم"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   FlowDirection="RightToLeft"/>
-                        <TextBlock x:Name="TelemetryStatusText"
-                                   Text="LIVE"
-                                   Foreground="#77E3B8"
-                                   FontSize="10"
-                                   Margin="12,5,0,0"
-                                   FlowDirection="LeftToRight"/>
-                    </DockPanel>
+            <local:EditableWidgetHost x:Name="CpuGaugeHost" WidgetId="gauge-cpu"
+                                      Width="185" Height="165" DesignWidth="185" DesignHeight="165" MinWidth="96" MinHeight="82"
+                                      Canvas.Left="465" Canvas.Top="405">
+                <local:BDFRGauge x:Name="CpuGauge" Value="0" Label="CPU"/>
+            </local:EditableWidgetHost>
 
-                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,4,0,0">
-                        <local:BDFRGauge x:Name="CpuGauge" Value="0" Label="CPU" Margin="8"/>
-                        <local:BDFRGauge x:Name="RamGauge" Value="0" Label="RAM" Margin="8"/>
-                        <local:BDFRGauge x:Name="BatteryGauge" Value="0" Label="باتری" Margin="8"/>
-                    </UniformGrid>
-                </Grid>
+            <local:EditableWidgetHost x:Name="RamGaugeHost" WidgetId="gauge-ram"
+                                      Width="185" Height="165" DesignWidth="185" DesignHeight="165" MinWidth="96" MinHeight="82"
+                                      Canvas.Left="680" Canvas.Top="405">
+                <local:BDFRGauge x:Name="RamGauge" Value="0" Label="RAM"/>
+            </local:EditableWidgetHost>
+
+            <local:EditableWidgetHost x:Name="BatteryGaugeHost" WidgetId="gauge-battery"
+                                      Width="185" Height="165" DesignWidth="185" DesignHeight="165" MinWidth="96" MinHeight="82"
+                                      Canvas.Left="895" Canvas.Top="405">
+                <local:BDFRGauge x:Name="BatteryGauge" Value="0" Label="باتری"/>
             </local:EditableWidgetHost>
 
             <local:EditableWidgetHost x:Name="QuickHost" WidgetId="quick-status"
