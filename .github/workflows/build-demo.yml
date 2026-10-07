@@ -1,0 +1,35 @@
+name: Build standalone demo
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/BDFR.LogonUI.Demo/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/build-demo.yml'
+  workflow_dispatch:
+
+jobs:
+  publish-win-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish standalone demo
+        run: dotnet publish src/BDFR.LogonUI.Demo/BDFR.LogonUI.Demo.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugSymbols=false -p:DebugType=None -o artifacts/BDFR_LogonUI_Demo
+
+      - name: Show publish output
+        shell: pwsh
+        run: Get-ChildItem artifacts/BDFR_LogonUI_Demo -Recurse | Select-Object FullName, Length
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BDFR_LogonUI_Demo-win-x64
+          path: artifacts/BDFR_LogonUI_Demo/
+          if-no-files-found: error

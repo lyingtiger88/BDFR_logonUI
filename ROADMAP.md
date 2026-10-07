@@ -1,21 +1,41 @@
 # BDFR LogonUI Roadmap
 
-This roadmap is intentionally recovery-first. The project will build the lock dashboard and integration layer before touching Windows sign-in integration.
+This roadmap is intentionally recovery-first. The project will build and validate a standalone dashboard before any Windows sign-in integration.
 
 ## Milestone 0 — Repository foundation
-**Status: in progress**
+**Status: complete**
 
 - [x] Bootstrap repository and define project goals.
 - [x] Establish no-patching / no-injection security boundary.
-- [ ] Add architecture and security documentation.
-- [ ] Add shared contracts project.
-- [ ] Add broker prototype.
-- [ ] Add CI build workflow after the first buildable solution exists.
+- [x] Add architecture and security documentation.
+- [x] Add shared contracts project.
+- [x] Add broker prototype.
+- [x] Add canonical gauge design specification.
 
 **Exit criteria:** repository structure is stable enough for incremental development.
 
+## Milestone 0.5 — Standalone executable demo
+**Status: in progress — highest priority**
+
+The first usable build must run as a normal Windows desktop executable. It must not register a Credential Provider, modify LogonUI, change system policy, replace the Windows lock screen, or require installation.
+
+- [x] Add a standalone desktop demo project.
+- [x] Start in a full-screen lock-screen-like preview.
+- [x] Add editable widget containers.
+- [x] Add drag and resize behavior.
+- [x] Add layout save/load/reset.
+- [x] Add edit-mode and "finish/lock editing" workflow.
+- [x] Add the first BDFRGauge implementation.
+- [x] Add CI publish workflow for a self-contained win-x64 executable.
+- [ ] Verify the GitHub Actions build artifact on Windows 10.
+- [ ] Verify the GitHub Actions build artifact on Windows 11.
+- [ ] Connect the standalone UI to the broker instead of demo data.
+- [ ] Add wallpaper/theme selection UI.
+
+**Exit criteria:** the user can download/run a test executable, rearrange/resize widgets, save the layout, exit normally, and remove it simply by deleting the executable/folder.
+
 ## Milestone 1 — Contracts + local broker
-**Target: first executable prototype**
+**Target: broker-backed standalone demo**
 
 - Define versioned widget manifest.
 - Define notification model and privacy levels.
@@ -24,18 +44,19 @@ This roadmap is intentionally recovery-first. The project will build the lock da
 - Use local authenticated IPC; Named Pipes are the preferred transport.
 - Reject unauthenticated or malformed provider payloads.
 - Add a read-only mock provider for development.
+- Feed sanitized snapshots into the standalone demo.
 
-**Exit criteria:** a sample provider can publish status to the broker and a test client can read it.
+**Exit criteria:** a sample provider can publish status to the broker and the standalone experience can render it.
 
 ## Milestone 2 — Lock Experience shell
-**Target: interactive desktop prototype**
+**Target: production-quality visual shell**
 
-- WinUI 3/.NET desktop shell for rapid UI iteration.
+- Promote the validated standalone UI into the shared experience layer.
 - Clock and dual Gregorian/Persian date.
 - Full-screen background engine.
 - Glass/Acrylic cards with accessibility fallbacks.
 - Multi-monitor and DPI-aware layout.
-- Widget host with fixed safe zones.
+- Editable widget host, grid snapping and smart guides.
 - Power/network/system-status widgets.
 - Offline-first startup.
 
@@ -81,9 +102,10 @@ This roadmap is intentionally recovery-first. The project will build the lock da
 **Exit criteria:** third-party/BDFR apps can publish bounded, privacy-aware widgets through a stable SDK.
 
 ## Milestone 6 — Windows sign-in integration
-**Target: guarded experimental branch**
+**Target: guarded experimental branch, only after standalone validation**
 
 - Native C++ Credential Provider V2 proof of concept.
+- Reuse the validated shared UI/contracts where Windows permits.
 - Keep Microsoft password/PIN/Windows Hello providers available.
 - Do not store or transmit credentials through the broker.
 - Separate authentication code from widget/UI code.
@@ -101,7 +123,7 @@ This roadmap is intentionally recovery-first. The project will build the lock da
 - Never assume Enterprise-only features on Home/Pro.
 - Provide reversible configuration tooling.
 
-**Exit criteria:** supported editions can opt into a cleaner OEM-style experience with one-click rollback.
+**Exit criteria:** supported editions can opt into a cleaner OEM-style experience with rollback.
 
 ## Milestone 8 — Installer, recovery and release engineering
 **Target: alpha release**
@@ -120,18 +142,11 @@ This roadmap is intentionally recovery-first. The project will build the lock da
 
 ## Architecture rules
 
-1. Windows remains the authentication authority.
-2. BDFR LogonUI never receives plaintext passwords/PINs through the widget broker.
-3. Built-in Windows sign-in providers remain available as recovery paths.
-4. No patching of `LogonUI.exe`, `authui.dll`, Winlogon, Windows Hello, or LSA.
-5. Any component running close to the sign-in boundary must have minimal dependencies.
-6. Network content is optional; lock experience must render safely offline.
-7. Sensitive notification content defaults to hidden while locked.
-
-## Immediate next commits
-
-1. Architecture/security documents.
-2. Shared contracts project.
-3. Broker prototype with in-memory registry.
-4. Mock calendar/system provider.
-5. Experience prototype consuming broker data.
+1. Standalone demo first; Windows sign-in integration later.
+2. Windows remains the authentication authority.
+3. BDFR LogonUI never receives plaintext passwords/PINs through the widget broker.
+4. Built-in Windows sign-in providers remain available as recovery paths.
+5. No patching of `LogonUI.exe`, `authui.dll`, Winlogon, Windows Hello, or LSA.
+6. Any component running close to the sign-in boundary must have minimal dependencies.
+7. Network content is optional; lock experience must render safely offline.
+8. Sensitive notification content defaults to hidden while locked.
