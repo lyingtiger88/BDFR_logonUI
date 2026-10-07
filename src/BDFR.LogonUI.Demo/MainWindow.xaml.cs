@@ -352,7 +352,7 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo
         {
             FileName = "explorer.exe",
-            Arguments = $""{_backgrounds.BackgroundFolder}"",
+            Arguments = $"\\\"{_backgrounds.BackgroundFolder}\\\"",
             UseShellExecute = true
         });
     }
