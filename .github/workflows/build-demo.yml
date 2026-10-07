@@ -38,6 +38,27 @@ jobs:
             -p:DebugType=None `
             -o artifacts/BDFR_LogonUI_Demo
 
+      - name: Publish local broker
+        shell: pwsh
+        run: |
+          dotnet publish src/BDFR.LogonUI.Broker/BDFR.LogonUI.Broker.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:DebugSymbols=false `
+            -p:DebugType=None `
+            -p:PublishTrimmed=false `
+            -p:ContinuousIntegrationBuild=true `
+            -o artifacts/BDFR_LogonUI_Broker
+
+          $brokerExe = "artifacts/BDFR_LogonUI_Broker/BDFR.LogonUI.Broker.exe"
+          if (-not (Test-Path $brokerExe)) {
+            throw "Published broker executable was not found at $brokerExe"
+          }
+
+          Copy-Item $brokerExe "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe" -Force
+
       - name: Prepare permanent build package
         shell: pwsh
         run: |
@@ -46,10 +67,15 @@ jobs:
           $baseName = "BDFR_LogonUI_Demo-$tag-win-x64"
           $zipPath = "artifacts/$baseName.zip"
           $exePath = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Demo.exe"
+          $brokerPath = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe"
           $hashPath = "artifacts/$baseName.sha256.txt"
 
           if (-not (Test-Path $exePath)) {
             throw "Published executable was not found at $exePath"
+          }
+
+          if (-not (Test-Path $brokerPath)) {
+            throw "Packaged broker executable was not found at $brokerPath"
           }
 
           Compress-Archive -Path "artifacts/BDFR_LogonUI_Demo/*" -DestinationPath $zipPath -Force
@@ -87,7 +113,8 @@ jobs:
           Workflow run: #${{ github.run_number }}
           Attempt: ${{ github.run_attempt }}
           Platform: Windows x64
-          Packaging: self-contained single-file .NET 10 executable
+          Packaging: self-contained .NET 10 Demo + local Broker executables
+          Calendar bridge: current-user named pipe; privacy-filtered Anahita snapshots
           Safety mode: standalone demo; does not replace or register Windows LogonUI/Credential Provider.
           "@
 
