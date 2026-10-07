@@ -14,4 +14,7 @@
     <DebugSymbols>false</DebugSymbols>
     <DebugType>None</DebugType>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BDFR.LogonUI.Contracts\BDFR.LogonUI.Contracts.csproj" />
+  </ItemGroup>
 </Project>
