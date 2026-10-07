@@ -5,6 +5,8 @@
     <Application.Resources>
         <SolidColorBrush x:Key="GlassSurfaceBrush" Color="#A8182433"/>
         <SolidColorBrush x:Key="GlassBorderBrush" Color="#52FFFFFF"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#2F8CF0"/>
+        <SolidColorBrush x:Key="ToolbarSurfaceBrush" Color="#D0182433"/>
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="White"/>
@@ -20,8 +22,8 @@
                     <ControlTemplate TargetType="{x:Type local:EditableWidgetHost}">
                         <Grid>
                             <Border x:Name="PART_Surface"
-                                    Background="{StaticResource GlassSurfaceBrush}"
-                                    BorderBrush="{StaticResource GlassBorderBrush}"
+                                    Background="{DynamicResource GlassSurfaceBrush}"
+                                    BorderBrush="{DynamicResource GlassBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="20">
                                 <Border.Effect>
@@ -49,7 +51,7 @@
                             <Rectangle x:Name="PART_Selection"
                                        Margin="-4"
                                        RadiusX="22" RadiusY="22"
-                                       Stroke="#65B7FF"
+                                       Stroke="{DynamicResource AccentBrush}"
                                        StrokeThickness="2"
                                        StrokeDashArray="4 3"
                                        IsHitTestVisible="False"
@@ -61,7 +63,7 @@
                                    VerticalAlignment="Bottom"
                                    Margin="0,0,-8,-8"
                                    Cursor="SizeNWSE"
-                                   Background="#2F8CFF"
+                                   Background="{DynamicResource AccentBrush}"
                                    Visibility="Collapsed">
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
@@ -86,7 +88,7 @@
 
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="PART_Selection" Property="StrokeThickness" Value="3"/>
-                                <Setter TargetName="PART_Selection" Property="Stroke" Value="#8AC8FF"/>
+                                <Setter TargetName="PART_Selection" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
 
                             <Trigger Property="IsLayoutLocked" Value="True">

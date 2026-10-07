@@ -88,7 +88,7 @@ public sealed class SystemTelemetryService
         if (!GetSystemPowerStatus(out var status))
             return (null, false);
 
-        var battery = status.BatteryLifePercent == byte.MaxValue
+        double? battery = status.BatteryLifePercent == byte.MaxValue
             ? null
             : Math.Clamp((double)status.BatteryLifePercent, 0, 100);
 

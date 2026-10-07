@@ -18,8 +18,8 @@
 
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#253B536D"/>
-            <Setter Property="BorderBrush" Value="#44FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource ToolbarSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource GlassBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="11,8"/>
             <Setter Property="Margin" Value="3,0"/>
@@ -42,7 +42,7 @@
         </Style>
 
         <Style x:Key="ToolbarPrimaryButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
-            <Setter Property="Background" Value="#2D7FF0"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderBrush" Value="#77B8FF"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
@@ -349,6 +349,7 @@
                 <Button Style="{StaticResource ToolbarButton}" Content="بازنشانی" Click="Reset_Click"/>
                 <Button Style="{StaticResource ToolbarPrimaryButton}" Content="پایان و قفل ویرایش" Click="FinishEdit_Click"/>
 
+                <Button Style="{StaticResource ToolbarButton}" Content="تم و گیج" Click="Theme_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="پس‌زمینه" Click="Background_Click"/>
                 <Button x:Name="ElenaButton" Style="{StaticResource ToolbarButton}" Content="Elena: خاموش" Click="Elena_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="پوشه فصل‌ها" Click="OpenBackgroundFolder_Click"/>

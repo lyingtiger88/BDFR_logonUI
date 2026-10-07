@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private readonly SeasonalBackgroundService _backgrounds = new();
     private readonly AnahitaCalendarService _calendar = new();
     private readonly CalendarBrokerClient _broker = new();
+    private readonly ThemeSettingsService _themes = new();
+    private ThemeSettings _theme = ThemeSettingsService.Preset("Fluent");
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
     private readonly DispatcherTimer _brokerTimer;
@@ -58,6 +60,9 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         var now = DateTime.Now;
+
+        _theme = _themes.Load();
+        ApplyTheme(_theme);
 
         UpdateClock();
         BuildCalendar(now);
@@ -473,6 +478,36 @@ public partial class MainWindow : Window
 
         SetEditMode(true);
         EditStateText.Text = "چیدمان پیش‌فرض بازیابی شد";
+    }
+
+    private void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ThemeSettingsWindow(_theme) { Owner = this };
+        if (dialog.ShowDialog() != true)
+            return;
+
+        _theme = dialog.ResultSettings;
+        _themes.Save(_theme);
+        ApplyTheme(_theme);
+        EditStateText.Text = $"تم ذخیره شد • {_theme.Preset}";
+    }
+
+    private void ApplyTheme(ThemeSettings settings)
+    {
+        ThemeSettingsService.ApplyAppResources(settings);
+
+        var gauges = new[] { CpuGauge, RamGauge, BatteryGauge };
+        foreach (var gauge in gauges)
+        {
+            gauge.TrackBrush = ThemeSettingsService.Brush(settings.GaugeTrack, "#50E6ECF4");
+            gauge.NormalBrush = ThemeSettingsService.Brush(settings.GaugeNormal, "#5BDDA5");
+            gauge.WarningBrush = ThemeSettingsService.Brush(settings.GaugeWarning, "#FFA54C");
+            gauge.CriticalBrush = ThemeSettingsService.Brush(settings.GaugeCritical, "#FF5B4C");
+            gauge.MarkerBrush = ThemeSettingsService.Brush(settings.GaugeMarker, "#11233E");
+            gauge.ValueBrush = ThemeSettingsService.Brush(settings.GaugeValue, "#FFFFFF");
+            gauge.ScaleBrush = ThemeSettingsService.Brush(settings.GaugeScale, "#D3DBE5");
+            gauge.LabelBrush = ThemeSettingsService.Brush(settings.GaugeLabel, "#E2E7ED");
+        }
     }
 
     private void Background_Click(object sender, RoutedEventArgs e)
