@@ -53,6 +53,36 @@ public sealed class EditableWidgetHost : ContentControl
         set => SetValue(IsSelectedProperty, value);
     }
 
+    public static readonly DependencyProperty DesignWidthProperty =
+        DependencyProperty.Register(nameof(DesignWidth), typeof(double), typeof(EditableWidgetHost),
+            new PropertyMetadata(320d));
+
+    public double DesignWidth
+    {
+        get => (double)GetValue(DesignWidthProperty);
+        set => SetValue(DesignWidthProperty, value);
+    }
+
+    public static readonly DependencyProperty DesignHeightProperty =
+        DependencyProperty.Register(nameof(DesignHeight), typeof(double), typeof(EditableWidgetHost),
+            new PropertyMetadata(200d));
+
+    public double DesignHeight
+    {
+        get => (double)GetValue(DesignHeightProperty);
+        set => SetValue(DesignHeightProperty, value);
+    }
+
+    public static readonly DependencyProperty PreserveAspectRatioProperty =
+        DependencyProperty.Register(nameof(PreserveAspectRatio), typeof(bool), typeof(EditableWidgetHost),
+            new PropertyMetadata(true));
+
+    public bool PreserveAspectRatio
+    {
+        get => (bool)GetValue(PreserveAspectRatioProperty);
+        set => SetValue(PreserveAspectRatioProperty, value);
+    }
+
     public event EventHandler? LayoutChanged;
 
     public override void OnApplyTemplate()
@@ -125,11 +155,68 @@ public sealed class EditableWidgetHost : ContentControl
         if (!IsEditMode || IsLayoutLocked)
             return;
 
-        var maxWidth = Parent is Canvas canvas ? Math.Max(MinWidth, canvas.ActualWidth - SafeCanvasValue(Canvas.GetLeft(this))) : double.PositiveInfinity;
-        var maxHeight = Parent is Canvas canvas2 ? Math.Max(MinHeight, canvas2.ActualHeight - SafeCanvasValue(Canvas.GetTop(this))) : double.PositiveInfinity;
+        var canvas = Parent as Canvas;
+        var maxWidth = canvas is null
+            ? double.PositiveInfinity
+            : Math.Max(MinWidth, canvas.ActualWidth - SafeCanvasValue(Canvas.GetLeft(this)));
 
-        Width = Snap(Math.Clamp(ActualWidth + e.HorizontalChange, Math.Max(140, MinWidth), maxWidth));
-        Height = Snap(Math.Clamp(ActualHeight + e.VerticalChange, Math.Max(90, MinHeight), maxHeight));
+        var maxHeight = canvas is null
+            ? double.PositiveInfinity
+            : Math.Max(MinHeight, canvas.ActualHeight - SafeCanvasValue(Canvas.GetTop(this)));
+
+        var minWidth = Math.Max(90, MinWidth);
+        var minHeight = Math.Max(55, MinHeight);
+
+        var proposedWidth = ActualWidth + e.HorizontalChange;
+        var proposedHeight = ActualHeight + e.VerticalChange;
+
+        var keepRatio = PreserveAspectRatio && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        if (keepRatio)
+        {
+            var ratio = DesignWidth > 0 && DesignHeight > 0
+                ? DesignWidth / DesignHeight
+                : Math.Max(.1, ActualWidth / Math.Max(1, ActualHeight));
+
+            if (Math.Abs(e.HorizontalChange) >= Math.Abs(e.VerticalChange))
+                proposedHeight = proposedWidth / ratio;
+            else
+                proposedWidth = proposedHeight * ratio;
+
+            if (proposedWidth < minWidth)
+            {
+                proposedWidth = minWidth;
+                proposedHeight = proposedWidth / ratio;
+            }
+
+            if (proposedHeight < minHeight)
+            {
+                proposedHeight = minHeight;
+                proposedWidth = proposedHeight * ratio;
+            }
+
+            if (proposedWidth > maxWidth)
+            {
+                proposedWidth = maxWidth;
+                proposedHeight = proposedWidth / ratio;
+            }
+
+            if (proposedHeight > maxHeight)
+            {
+                proposedHeight = maxHeight;
+                proposedWidth = proposedHeight * ratio;
+            }
+
+            proposedWidth = Snap(proposedWidth);
+            proposedHeight = proposedWidth / ratio;
+        }
+        else
+        {
+            proposedWidth = Snap(Math.Clamp(proposedWidth, minWidth, maxWidth));
+            proposedHeight = Snap(Math.Clamp(proposedHeight, minHeight, maxHeight));
+        }
+
+        Width = Math.Max(minWidth, proposedWidth);
+        Height = Math.Max(minHeight, proposedHeight);
         LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -147,8 +234,10 @@ public sealed class EditableWidgetHost : ContentControl
         {
             if (current is T typed)
                 return typed;
+
             current = VisualTreeHelper.GetParent(current);
         }
+
         return null;
     }
 }
