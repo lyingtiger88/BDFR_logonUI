@@ -302,7 +302,10 @@ public partial class MainWindow : Window
         Place(CalendarHost, 20, 18, 380, 465);
         Place(ClockHost, 500, 25, 500, 220);
         Place(NotificationsHost, 1080, 18, 390, 440);
-        Place(SystemHost, 455, 330, 640, 245);
+        Place(SystemHost, 455, 330, 640, 58);
+        Place(CpuGaugeHost, 465, 405, 185, 165);
+        Place(RamGaugeHost, 680, 405, 185, 165);
+        Place(BatteryGaugeHost, 895, 405, 185, 165);
         Place(QuickHost, 30, 600, 270, 88);
         Place(UnlockHost, 570, 610, 420, 82);
 
