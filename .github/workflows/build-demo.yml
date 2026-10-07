@@ -8,9 +8,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: bdfr-logonui-demo-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   publish-win-x64:
     runs-on: windows-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
