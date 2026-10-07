@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BDFR.LogonUI.Contracts;
 
 namespace BDFR.LogonUI.Broker;
@@ -5,34 +6,80 @@ namespace BDFR.LogonUI.Broker;
 public sealed class CalendarSnapshotRegistry
 {
     private static readonly TimeSpan MaxTtl = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan MinPublishInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan SafeCacheLifetime = TimeSpan.FromHours(6);
+
     private const int MaxAgendaItems = 64;
     private const int MaxReminders = 64;
     private const int MaxTextLength = 256;
 
     private readonly object _gate = new();
+    private readonly string _safeCachePath;
+
     private CalendarLockSnapshot? _latest;
+    private CalendarLockSnapshot? _safeCache;
+    private DateTimeOffset _lastPublishedAtUtc;
+
+    public CalendarSnapshotRegistry()
+    {
+        var root = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BDFR",
+            "LogonUI");
+
+        Directory.CreateDirectory(root);
+        _safeCachePath = Path.Combine(root, "broker.calendar.safe.json");
+        _safeCache = TryLoadSafeCache();
+    }
 
     public void Publish(CalendarLockSnapshot snapshot)
     {
         Validate(snapshot);
 
+        var now = DateTimeOffset.UtcNow;
+        CalendarLockSnapshot safe;
+
         lock (_gate)
+        {
+            if (now - _lastPublishedAtUtc < MinPublishInterval)
+                throw new InvalidOperationException("Calendar provider is publishing too quickly.");
+
+            _lastPublishedAtUtc = now;
             _latest = snapshot;
+
+            safe = SanitizeForLock(snapshot) with
+            {
+                ExpiresAtUtc = now.Add(SafeCacheLifetime)
+            };
+
+            _safeCache = safe;
+        }
+
+        TrySaveSafeCache(safe);
     }
 
     public CalendarLockSnapshot? Read(DateTimeOffset nowUtc, bool isLocked)
     {
-        CalendarLockSnapshot? snapshot;
+        CalendarLockSnapshot? live;
+        CalendarLockSnapshot? cached;
 
         lock (_gate)
-            snapshot = _latest;
+        {
+            live = _latest;
+            cached = _safeCache;
+        }
 
-        if (snapshot is null || snapshot.ExpiresAtUtc <= nowUtc)
-            return null;
+        if (live is not null && live.ExpiresAtUtc > nowUtc)
+            return isLocked ? SanitizeForLock(live) : live;
 
-        if (!isLocked)
-            return snapshot;
+        if (isLocked && cached is not null && cached.ExpiresAtUtc > nowUtc)
+            return cached;
 
+        return null;
+    }
+
+    private static CalendarLockSnapshot SanitizeForLock(CalendarLockSnapshot snapshot)
+    {
         var agenda = snapshot.Agenda
             .Where(x => x.Privacy != PrivacyLevel.Secret)
             .Select(x => x.Privacy == PrivacyLevel.Public
@@ -52,6 +99,48 @@ public sealed class CalendarSnapshotRegistry
             Agenda = agenda,
             Reminders = reminders
         };
+    }
+
+    private CalendarLockSnapshot? TryLoadSafeCache()
+    {
+        if (!File.Exists(_safeCachePath))
+            return null;
+
+        try
+        {
+            var snapshot = JsonSerializer.Deserialize<CalendarLockSnapshot>(
+                File.ReadAllText(_safeCachePath));
+
+            if (snapshot is null ||
+                snapshot.SchemaVersion != 1 ||
+                !string.Equals(snapshot.ProviderId, "bdfr.anahita", StringComparison.Ordinal) ||
+                snapshot.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+            {
+                return null;
+            }
+
+            return snapshot;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void TrySaveSafeCache(CalendarLockSnapshot snapshot)
+    {
+        try
+        {
+            var temp = _safeCachePath + ".tmp";
+            File.WriteAllText(
+                temp,
+                JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(temp, _safeCachePath, overwrite: true);
+        }
+        catch
+        {
+            // Cache persistence is best effort and must not break live broker IPC.
+        }
     }
 
     private static void Validate(CalendarLockSnapshot snapshot)
