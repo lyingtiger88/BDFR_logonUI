@@ -17,4 +17,11 @@
   <ItemGroup>
     <ProjectReference Include="..\BDFR.LogonUI.Contracts\BDFR.LogonUI.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="wallpaper\README.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>wallpaper\README.txt</TargetPath>
+    </None>
+  </ItemGroup>
 </Project>

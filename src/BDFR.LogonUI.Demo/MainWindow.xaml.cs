@@ -8,7 +8,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using Microsoft.Win32;
 using BDFR.LogonUI.Contracts;
 
 namespace BDFR.LogonUI.Demo;
@@ -25,6 +24,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
     private readonly DispatcherTimer _brokerTimer;
+    private readonly DispatcherTimer _seasonCarouselTimer;
 
     private bool _brokerRefreshInFlight;
 
@@ -48,12 +48,20 @@ public partial class MainWindow : Window
         _brokerTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(12) };
         _brokerTimer.Tick += async (_, _) => await RefreshBrokerCalendarAsync();
 
+        _seasonCarouselTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        _seasonCarouselTimer.Tick += (_, _) =>
+        {
+            if (_backgrounds.AdvanceSeasonCarousel(DateTime.Now))
+                RefreshBackground();
+        };
+
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
             _clockTimer.Stop();
             _telemetryTimer.Stop();
             _brokerTimer.Stop();
+            _seasonCarouselTimer.Stop();
         };
     }
 
@@ -67,6 +75,9 @@ public partial class MainWindow : Window
         UpdateClock();
         BuildCalendar(now);
         RefreshBackground(now);
+
+        if (_backgrounds.SeasonCarouselMode)
+            _seasonCarouselTimer.Start();
 
         _telemetry.Read();
         UpdateTelemetry();
@@ -512,36 +523,30 @@ public partial class MainWindow : Window
 
     private void Background_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog
+        var gallery = new WallpaperGalleryWindow(_backgrounds)
         {
-            Title = "انتخاب پس‌زمینه BDFR LogonUI",
-            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp|JPEG|*.jpg;*.jpeg|PNG|*.png|Bitmap|*.bmp",
-            CheckFileExists = true,
-            Multiselect = false
+            Owner = this
         };
 
-        if (dialog.ShowDialog(this) != true)
-            return;
+        gallery.ShowDialog();
 
-        try
+        if (gallery.WallpaperChanged)
         {
-            _backgrounds.ImportCustom(dialog.FileName);
+            _seasonCarouselTimer.Stop();
             RefreshBackground();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(
-                this,
-                ex.Message,
-                "BDFR LogonUI",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
         }
     }
 
     private void SeasonCarousel_Click(object sender, RoutedEventArgs e)
     {
-        _backgrounds.SetSeasonCarouselMode(!_backgrounds.SeasonCarouselMode);
+        var enabled = !_backgrounds.SeasonCarouselMode;
+        _backgrounds.SetSeasonCarouselMode(enabled);
+
+        if (enabled)
+            _seasonCarouselTimer.Start();
+        else
+            _seasonCarouselTimer.Stop();
+
         RefreshBackground();
     }
 
