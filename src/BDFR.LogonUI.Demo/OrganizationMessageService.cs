@@ -43,6 +43,7 @@ public sealed class OrganizationMessageService
     private const string MessageMarker = "---MESSAGE---";
 
     private readonly string _portablePath;
+    private readonly string _userPath;
     private readonly string _managedPath;
 
     private string? _activePath;
@@ -53,6 +54,12 @@ public sealed class OrganizationMessageService
     {
         _portablePath = Path.Combine(AppContext.BaseDirectory, FileName);
 
+        _userPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BDFR",
+            "LogonUI",
+            FileName);
+
         _managedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "BDFR",
@@ -61,8 +68,34 @@ public sealed class OrganizationMessageService
     }
 
     public string PortablePath => _portablePath;
+    public string UserPath => _userPath;
     public string ManagedPath => _managedPath;
     public string ActivePath => ResolveActivePath();
+
+    public string GetEditablePath()
+    {
+        if (File.Exists(_managedPath))
+            return _managedPath;
+
+        if (!File.Exists(_userPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_userPath)!);
+
+            if (File.Exists(_portablePath))
+            {
+                File.Copy(_portablePath, _userPath, overwrite: false);
+            }
+            else
+            {
+                File.WriteAllText(
+                    _userPath,
+                    DefaultTemplate,
+                    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            }
+        }
+
+        return _userPath;
+    }
 
     public bool HasChanged()
     {
@@ -201,9 +234,25 @@ public sealed class OrganizationMessageService
         if (File.Exists(_managedPath))
             return _managedPath;
 
-        // Portable/demo builds read the editable sidecar file next to the executable.
+        // A per-user override is convenient for portable/demo testing.
+        if (File.Exists(_userPath))
+            return _userPath;
+
+        // Portable builds ship a readable sample beside the executable.
         return _portablePath;
     }
+
+    private const string DefaultTemplate =
+        "# BDFR LogonUI organizational message\n" +
+        "Enabled=true\n" +
+        "Organization=نام سازمان\n" +
+        "Title=اطلاعیه سازمانی\n" +
+        "Footer=واحد روابط عمومی\n" +
+        "Priority=Normal\n" +
+        "ValidFrom=\n" +
+        "ValidUntil=\n" +
+        "---MESSAGE---\n" +
+        "متن پیام سازمانی را در این بخش وارد کنید.\n";
 
     private static DateTimeOffset? ParseDate(string value)
     {
