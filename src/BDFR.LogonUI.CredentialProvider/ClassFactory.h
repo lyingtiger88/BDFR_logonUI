@@ -16,6 +16,6 @@ public:
     IFACEMETHODIMP LockServer(BOOL lock) override;
 
 private:
-    ~BDFRClassFactory() = default;
+    ~BDFRClassFactory();
     std::atomic_ulong _refCount{1};
 };
