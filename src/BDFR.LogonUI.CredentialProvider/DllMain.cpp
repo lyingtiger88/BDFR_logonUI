@@ -17,8 +17,8 @@ STDAPI DllCanUnloadNow()
 }
 
 STDAPI DllGetClassObject(
-    const REFCLSID clsid,
-    const REFIID riid,
+    REFCLSID clsid,
+    REFIID riid,
     void** object)
 {
     if (!object)
