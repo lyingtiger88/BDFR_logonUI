@@ -21,9 +21,11 @@ public partial class MainWindow : Window
     private readonly CalendarBrokerClient _broker = new();
     private readonly ThemeSettingsService _themes = new();
     private readonly GaugeStyleSettingsService _gaugeStyleService = new();
+    private readonly WelcomeAnimationSettingsService _welcomeAnimationService = new();
     private readonly OrganizationMessageService _organizationMessages = new();
     private ThemeSettings _theme = ThemeSettingsService.Preset("Fluent");
     private GaugeStyleSettings _gaugeStyles = new();
+    private WelcomeAnimationSettings _welcomeAnimations = new();
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
     private readonly DispatcherTimer _brokerTimer;
@@ -79,6 +81,7 @@ public partial class MainWindow : Window
 
         _theme = _themes.Load();
         _gaugeStyles = _gaugeStyleService.Load();
+        _welcomeAnimations = _welcomeAnimationService.Load();
         ApplyTheme(_theme);
         ApplyGaugeStyles(_gaugeStyles);
 
@@ -508,7 +511,8 @@ public partial class MainWindow : Window
     {
         var dialog = new ThemeSettingsWindow(
             _theme,
-            _gaugeStyles)
+            _gaugeStyles,
+            _welcomeAnimations)
         {
             Owner = this
         };
@@ -518,15 +522,21 @@ public partial class MainWindow : Window
 
         _theme = dialog.ResultSettings;
         _gaugeStyles = dialog.ResultGaugeStyles;
+        _welcomeAnimations = dialog.ResultWelcomeAnimations;
 
         _themes.Save(_theme);
         _gaugeStyleService.Save(_gaugeStyles);
+        _welcomeAnimationService.Save(_welcomeAnimations);
 
         ApplyTheme(_theme);
         ApplyGaugeStyles(_gaugeStyles);
 
+        var welcomeName = WelcomeAnimationCatalog
+            .Definition(_welcomeAnimations.Resolve())
+            .PersianName;
+
         EditStateText.Text =
-            $"تم و مدل گیج ذخیره شد • {_theme.Preset}";
+            $"تنظیمات ذخیره شد • {_theme.Preset} • {welcomeName}";
     }
 
     private void ApplyTheme(ThemeSettings settings)
@@ -552,6 +562,33 @@ public partial class MainWindow : Window
         CpuGauge.VisualStyle = settings.Resolve("cpu");
         RamGauge.VisualStyle = settings.Resolve("ram");
         BatteryGauge.VisualStyle = settings.Resolve("battery");
+    }
+
+    private async void WelcomePreview_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        await WelcomeOverlay.PlayAsync(
+            _welcomeAnimations.Resolve(),
+            _welcomeAnimations.DurationSeconds,
+            "به BDFR خوش آمدید",
+            "پیش‌نمایش انیمیشن پس از ورود موفق");
+    }
+
+    private Task PlaySuccessfulLoginWelcomeAsync(string? displayName = null)
+    {
+        if (!_welcomeAnimations.Enabled)
+            return Task.CompletedTask;
+
+        var title = string.IsNullOrWhiteSpace(displayName)
+            ? "به BDFR خوش آمدید"
+            : $"{displayName}، خوش آمدید";
+
+        return WelcomeOverlay.PlayAsync(
+            _welcomeAnimations.Resolve(),
+            _welcomeAnimations.DurationSeconds,
+            title,
+            "ورود با موفقیت انجام شد");
     }
 
     private void RefreshOrganizationMessageIfChanged()
