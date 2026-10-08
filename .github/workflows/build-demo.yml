@@ -3,6 +3,8 @@ name: Build and publish standalone demo
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -64,7 +66,18 @@ jobs:
 
           Copy-Item $brokerExe "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe" -Force
 
+      - name: Validate PR build outputs
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          $demo = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Demo.exe"
+          $broker = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe"
+          if (-not (Test-Path $demo)) { throw "Demo executable missing." }
+          if (-not (Test-Path $broker)) { throw "Broker executable missing." }
+          Write-Host "PR validation passed: Demo + Broker published successfully."
+
       - name: Prepare permanent build package
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: |
           $shortSha = (git rev-parse --short=8 HEAD).Trim()
@@ -98,6 +111,7 @@ jobs:
           Write-Host "SHA256: $hash"
 
       - name: Upload Actions artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BASE_NAME }}
@@ -107,6 +121,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish permanent GitHub Release
+        if: github.event_name != 'pull_request'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -133,6 +148,7 @@ jobs:
             --prerelease
 
       - name: Build summary
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: |
           "### Published build" >> $env:GITHUB_STEP_SUMMARY
