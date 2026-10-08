@@ -548,7 +548,6 @@ public sealed class ThemeSettingsWindow : Window
 
     private static Brush Gradient(string top, string bottom)
     {
-        var converter = new BrushConverter();
         var first = (Color)ColorConverter.ConvertFromString(top);
         var second = (Color)ColorConverter.ConvertFromString(bottom);
 
