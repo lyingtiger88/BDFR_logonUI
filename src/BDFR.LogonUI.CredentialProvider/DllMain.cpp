@@ -1,9 +1,10 @@
 #include <windows.h>
+#include <new>
 
 #include "ClassFactory.h"
 #include "ProviderGuids.h"
 
-long g_moduleRefCount = 0;
+volatile LONG g_moduleRefCount = 0;
 
 BOOL APIENTRY DllMain(HMODULE, DWORD, LPVOID)
 {
