@@ -57,6 +57,36 @@
                                        IsHitTestVisible="False"
                                        Visibility="Collapsed"/>
 
+                            <Button x:Name="PART_RemoveButton"
+                                    Width="26" Height="26"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    Margin="-8,-8,0,0"
+                                    Padding="0"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Background="#D95252"
+                                    BorderBrush="White"
+                                    BorderThickness="1.5"
+                                    Cursor="Hand"
+                                    ToolTip="حذف ویجت از صفحه"
+                                    Content="×"
+                                    Visibility="Collapsed">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="13">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              Margin="0,-2,0,0"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
                             <Thumb x:Name="PART_ResizeThumb"
                                    Width="22" Height="22"
                                    HorizontalAlignment="Right"
@@ -84,11 +114,16 @@
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="PART_Selection" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="PART_ResizeThumb" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="PART_RemoveButton" Property="Visibility" Value="Visible"/>
                             </MultiTrigger>
 
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="PART_Selection" Property="StrokeThickness" Value="3"/>
                                 <Setter TargetName="PART_Selection" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsWidgetEnabled" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
                             </Trigger>
 
                             <Trigger Property="IsLayoutLocked" Value="True">
