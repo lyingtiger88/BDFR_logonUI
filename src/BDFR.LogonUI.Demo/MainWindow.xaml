@@ -65,7 +65,7 @@
         </Rectangle>
 
         <Rectangle x:Name="EditGridOverlay"
-                   Margin="24,112,24,28"
+                   Margin="24,148,24,28"
                    Opacity=".18"
                    IsHitTestVisible="False">
             <Rectangle.Fill>
@@ -91,7 +91,7 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <Canvas x:Name="LayoutCanvas" Margin="24,112,24,28" ClipToBounds="True">
+        <Canvas x:Name="LayoutCanvas" Margin="24,148,24,28" ClipToBounds="True">
             <local:EditableWidgetHost x:Name="CalendarHost" WidgetId="calendar"
                                       Width="380" Height="465" DesignWidth="380" DesignHeight="465" MinWidth="190" MinHeight="233"
                                       Canvas.Left="20" Canvas.Top="18">
@@ -397,7 +397,7 @@
         </Canvas>
 
         <Border VerticalAlignment="Top"
-                HorizontalAlignment="Center"
+                HorizontalAlignment="Stretch"
                 Margin="18"
                 Padding="10,9"
                 Background="#D0182433"
@@ -407,7 +407,9 @@
             <Border.Effect>
                 <DropShadowEffect Color="#000000" BlurRadius="22" ShadowDepth="0" Opacity=".35"/>
             </Border.Effect>
-            <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft">
+            <WrapPanel Orientation="Horizontal"
+                       FlowDirection="RightToLeft"
+                       HorizontalAlignment="Center">
                 <TextBlock x:Name="EditStateText"
                            Text="حالت ویرایش فعال"
                            Foreground="#88C7FF"
@@ -430,7 +432,7 @@
 
                 <Button Style="{StaticResource ToolbarButton}" Content="تمام‌صفحه F11" Click="Fullscreen_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="خروج" Click="Exit_Click" Background="#50333B49"/>
-            </StackPanel>
+            </WrapPanel>
         </Border>
 
         <local:WelcomeAnimationOverlay x:Name="WelcomeOverlay"
