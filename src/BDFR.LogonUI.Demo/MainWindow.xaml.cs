@@ -21,12 +21,14 @@ public partial class MainWindow : Window
     private readonly CalendarBrokerClient _broker = new();
     private readonly ThemeSettingsService _themes = new();
     private readonly GaugeStyleSettingsService _gaugeStyleService = new();
+    private readonly OrganizationMessageService _organizationMessages = new();
     private ThemeSettings _theme = ThemeSettingsService.Preset("Fluent");
     private GaugeStyleSettings _gaugeStyles = new();
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
     private readonly DispatcherTimer _brokerTimer;
     private readonly DispatcherTimer _seasonCarouselTimer;
+    private readonly DispatcherTimer _organizationMessageTimer;
 
     private bool _brokerRefreshInFlight;
 
@@ -57,6 +59,9 @@ public partial class MainWindow : Window
                 RefreshBackground();
         };
 
+        _organizationMessageTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _organizationMessageTimer.Tick += (_, _) => RefreshOrganizationMessageIfChanged();
+
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
@@ -64,6 +69,7 @@ public partial class MainWindow : Window
             _telemetryTimer.Stop();
             _brokerTimer.Stop();
             _seasonCarouselTimer.Stop();
+            _organizationMessageTimer.Stop();
         };
     }
 
@@ -79,6 +85,7 @@ public partial class MainWindow : Window
         UpdateClock();
         BuildCalendar(now);
         RefreshBackground(now);
+        RefreshOrganizationMessage(force: true);
 
         if (_backgrounds.SeasonCarouselMode)
             _seasonCarouselTimer.Start();
@@ -91,6 +98,7 @@ public partial class MainWindow : Window
 
         _clockTimer.Start();
         _telemetryTimer.Start();
+        _organizationMessageTimer.Start();
 
         AgendaBrokerStateText.Text = "Broker…";
         if (await _broker.EnsureBrokerAsync())
@@ -488,6 +496,7 @@ public partial class MainWindow : Window
         Place(CpuGaugeHost, 465, 405, 185, 165);
         Place(RamGaugeHost, 680, 405, 185, 165);
         Place(BatteryGaugeHost, 895, 405, 185, 165);
+        Place(OrganizationHost, 1090, 485, 370, 165);
         Place(QuickHost, 30, 600, 270, 88);
         Place(UnlockHost, 570, 610, 420, 82);
 
@@ -543,6 +552,98 @@ public partial class MainWindow : Window
         CpuGauge.VisualStyle = settings.Resolve("cpu");
         RamGauge.VisualStyle = settings.Resolve("ram");
         BatteryGauge.VisualStyle = settings.Resolve("battery");
+    }
+
+    private void RefreshOrganizationMessageIfChanged()
+    {
+        if (_organizationMessages.HasChanged())
+            RefreshOrganizationMessage(force: true);
+    }
+
+    private void RefreshOrganizationMessage(bool force = false)
+    {
+        if (!force && !_organizationMessages.HasChanged())
+            return;
+
+        try
+        {
+            var message = _organizationMessages.Load();
+            var now = DateTimeOffset.Now;
+            var active = message.IsActive(now);
+
+            OrganizationHost.Visibility = active
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            if (!active)
+                return;
+
+            OrganizationNameText.Text = message.Organization;
+            OrganizationTitleText.Text = message.Title;
+            OrganizationMessageText.Text = string.IsNullOrWhiteSpace(message.Message)
+                ? "پیامی برای نمایش ثبت نشده است."
+                : message.Message;
+            OrganizationFooterText.Text = message.Footer;
+
+            var (label, barColor, badgeColor) = message.Priority switch
+            {
+                OrganizationMessagePriority.Critical =>
+                    ("CRITICAL", "#FF5B4C", "#40FF5B4C"),
+
+                OrganizationMessagePriority.Important =>
+                    ("IMPORTANT", "#FFA54C", "#40FFA54C"),
+
+                _ =>
+                    ("NORMAL", "#4FA3FF", "#404FA3FF")
+            };
+
+            OrganizationPriorityText.Text = label;
+            OrganizationPriorityBar.Background =
+                (Brush)new BrushConverter().ConvertFromString(barColor)!;
+            OrganizationPriorityBadge.Background =
+                (Brush)new BrushConverter().ConvertFromString(badgeColor)!;
+
+            OrganizationHost.ToolTip =
+                $"منبع پیام: {message.SourcePath}";
+        }
+        catch (Exception ex)
+        {
+            OrganizationHost.Visibility = Visibility.Visible;
+            OrganizationNameText.Text = "BDFR LogonUI";
+            OrganizationTitleText.Text = "خطا در فایل پیام سازمانی";
+            OrganizationMessageText.Text = ex.Message;
+            OrganizationFooterText.Text = _organizationMessages.ActivePath;
+            OrganizationPriorityText.Text = "ERROR";
+            OrganizationPriorityBar.Background = Brushes.IndianRed;
+            OrganizationPriorityBadge.Background =
+                new SolidColorBrush(Color.FromArgb(64, 255, 91, 76));
+        }
+    }
+
+    private void OrganizationMessage_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = _organizationMessages.GetEditablePath();
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "notepad.exe",
+                Arguments = $"\"{path}\"",
+                UseShellExecute = true
+            });
+
+            EditStateText.Text = "فایل پیام سازمانی باز شد";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                ex.Message,
+                "BDFR LogonUI — Organizational Message",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void Background_Click(object sender, RoutedEventArgs e)
