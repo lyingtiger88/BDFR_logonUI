@@ -2,9 +2,9 @@
 #include "FieldDefinitions.h"
 
 #include <shlwapi.h>
-#include <new>
+#include <new>\n\nextern long g_moduleRefCount;
 
-BDFRProvider::BDFRProvider() = default;
+BDFRProvider::BDFRProvider()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}
 
 BDFRProvider::~BDFRProvider()
 {
