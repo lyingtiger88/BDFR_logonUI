@@ -24,7 +24,7 @@ BDFRProvider::~BDFRProvider()
     InterlockedDecrement(&g_moduleRefCount);
 }
 
-HRESULT BDFRProvider::QueryInterface(const REFIID riid, void** object)
+HRESULT BDFRProvider::QueryInterface(REFIID riid, void** object)
 {
     if (!object)
         return E_POINTER;
