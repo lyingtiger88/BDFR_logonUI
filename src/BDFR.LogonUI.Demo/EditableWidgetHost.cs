@@ -29,7 +29,16 @@ public sealed class EditableWidgetHost : ContentControl
             nameof(IsWidgetEnabled),
             typeof(bool),
             typeof(EditableWidgetHost),
-            new PropertyMetadata(true));
+            new FrameworkPropertyMetadata(
+                true,
+                static (d, e) =>
+                {
+                    var host = (EditableWidgetHost)d;
+                    var enabled = e.NewValue is true;
+                    host.Visibility = enabled
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                }));
 
     public bool IsWidgetEnabled
     {
