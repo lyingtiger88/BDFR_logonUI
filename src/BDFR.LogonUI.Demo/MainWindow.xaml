@@ -291,6 +291,78 @@
                 <local:BDFRGauge x:Name="BatteryGauge" Value="0" Label="باتری"/>
             </local:EditableWidgetHost>
 
+            <local:EditableWidgetHost x:Name="OrganizationHost" WidgetId="organization-message"
+                                      Width="370" Height="165" DesignWidth="370" DesignHeight="165"
+                                      MinWidth="220" MinHeight="105"
+                                      Canvas.Left="1090" Canvas.Top="485">
+                <Grid FlowDirection="RightToLeft">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="OrganizationPriorityBar"
+                            Grid.Column="0"
+                            Margin="0,2,0,2"
+                            CornerRadius="3"
+                            Background="#4FA3FF"/>
+
+                    <Grid Grid.Column="1" Margin="12,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel>
+                            <TextBlock x:Name="OrganizationNameText"
+                                       Text="نام سازمان"
+                                       FontSize="11"
+                                       Foreground="#AFC6DC"
+                                       FontWeight="SemiBold"/>
+
+                            <Border x:Name="OrganizationPriorityBadge"
+                                    HorizontalAlignment="Left"
+                                    Padding="7,2"
+                                    CornerRadius="7"
+                                    Background="#244FA3FF">
+                                <TextBlock x:Name="OrganizationPriorityText"
+                                           Text="NORMAL"
+                                           FontSize="8"
+                                           Foreground="#DCEBFA"
+                                           FlowDirection="LeftToRight"/>
+                            </Border>
+                        </DockPanel>
+
+                        <TextBlock x:Name="OrganizationTitleText"
+                                   Grid.Row="1"
+                                   Text="اطلاعیه سازمانی"
+                                   FontSize="19"
+                                   FontWeight="SemiBold"
+                                   Margin="0,6,0,4"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <TextBlock x:Name="OrganizationMessageText"
+                                   Grid.Row="2"
+                                   Text="در حال خواندن organization-message.txt…"
+                                   FontSize="12"
+                                   Foreground="#D8E3ED"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   LineHeight="18"/>
+
+                        <TextBlock x:Name="OrganizationFooterText"
+                                   Grid.Row="3"
+                                   Text=""
+                                   FontSize="9"
+                                   Foreground="#8FAAC1"
+                                   Margin="0,6,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                </Grid>
+            </local:EditableWidgetHost>
+
             <local:EditableWidgetHost x:Name="QuickHost" WidgetId="quick-status"
                                       Width="270" Height="88" DesignWidth="270" DesignHeight="88" MinWidth="135" MinHeight="44"
                                       Canvas.Left="30" Canvas.Top="600">
@@ -350,6 +422,7 @@
                 <Button Style="{StaticResource ToolbarPrimaryButton}" Content="پایان و قفل ویرایش" Click="FinishEdit_Click"/>
 
                 <Button Style="{StaticResource ToolbarButton}" Content="تم و گیج" Click="Theme_Click"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="پیام سازمانی" Click="OrganizationMessage_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="پس‌زمینه" Click="Background_Click"/>
                 <Button x:Name="SeasonCarouselButton" Style="{StaticResource ToolbarButton}" Content="Season Carousel: خاموش" Click="SeasonCarousel_Click"/>
 
