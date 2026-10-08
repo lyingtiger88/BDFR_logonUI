@@ -15,7 +15,7 @@ BDFRClassFactory::~BDFRClassFactory()
     InterlockedDecrement(&g_moduleRefCount);
 }
 
-HRESULT BDFRClassFactory::QueryInterface(const REFIID riid, void** object)
+HRESULT BDFRClassFactory::QueryInterface(REFIID riid, void** object)
 {
     if (!object)
         return E_POINTER;
@@ -46,7 +46,7 @@ ULONG BDFRClassFactory::Release()
 
 HRESULT BDFRClassFactory::CreateInstance(
     IUnknown* outer,
-    const REFIID riid,
+    REFIID riid,
     void** object)
 {
     if (!object)
