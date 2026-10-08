@@ -64,6 +64,7 @@ public partial class MainWindow : Window
         _organizationMessageTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _organizationMessageTimer.Tick += (_, _) => RefreshOrganizationMessageIfChanged();
 
+        LayoutCanvas.SizeChanged += (_, _) => EnsureWidgetsInsideCanvas();
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
@@ -97,7 +98,9 @@ public partial class MainWindow : Window
         UpdateTelemetry();
 
         var hasSavedLayout = _layout.TryLoad(Widgets());
+        EnsureWidgetsInsideCanvas();
         SetEditMode(!hasSavedLayout);
+        RefreshOrganizationMessage(force: true);
 
         _clockTimer.Start();
         _telemetryTimer.Start();
@@ -471,6 +474,9 @@ public partial class MainWindow : Window
         EditStateText.Foreground = enabled
             ? Brushes.LightSkyBlue
             : Brushes.LightGreen;
+
+        RefreshOrganizationMessage(force: true);
+        EnsureWidgetsInsideCanvas();
     }
 
     private void EditMode_Click(object sender, RoutedEventArgs e) =>
@@ -499,7 +505,7 @@ public partial class MainWindow : Window
         Place(CpuGaugeHost, 465, 405, 185, 165);
         Place(RamGaugeHost, 680, 405, 185, 165);
         Place(BatteryGaugeHost, 895, 405, 185, 165);
-        Place(OrganizationHost, 1090, 485, 370, 165);
+        Place(OrganizationHost, 820, 485, 370, 165);
         Place(QuickHost, 30, 600, 270, 88);
         Place(UnlockHost, 570, 610, 420, 82);
 
@@ -564,6 +570,26 @@ public partial class MainWindow : Window
         BatteryGauge.VisualStyle = settings.Resolve("battery");
     }
 
+    private void WelcomeGallery_Click(object sender, RoutedEventArgs e)
+    {
+        var gallery = new WelcomeAnimationGalleryWindow(_welcomeAnimations)
+        {
+            Owner = this
+        };
+
+        if (gallery.ShowDialog() != true)
+            return;
+
+        _welcomeAnimations = gallery.ResultSettings;
+        _welcomeAnimationService.Save(_welcomeAnimations);
+
+        var name = WelcomeAnimationCatalog
+            .Definition(_welcomeAnimations.Resolve())
+            .PersianName;
+
+        EditStateText.Text = $"انیمیشن خوش‌آمد ذخیره شد • {name}";
+    }
+
     private async void WelcomePreview_Click(
         object sender,
         RoutedEventArgs e)
@@ -608,13 +634,32 @@ public partial class MainWindow : Window
             var now = DateTimeOffset.Now;
             var active = message.IsActive(now);
 
-            OrganizationHost.Visibility = active
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
             if (!active)
-                return;
+            {
+                if (_editMode)
+                {
+                    OrganizationHost.Visibility = Visibility.Visible;
+                    OrganizationNameText.Text = string.IsNullOrWhiteSpace(message.Organization)
+                        ? "پیام سازمانی"
+                        : message.Organization;
+                    OrganizationTitleText.Text = "ویجت پیام سازمانی غیرفعال است";
+                    OrganizationMessageText.Text =
+                        "در حالت ویرایش نمایش داده می‌شود تا بتوانی جای آن را تنظیم کنی. برای نمایش واقعی، Enabled=true و بازه زمانی معتبر قرار بده.";
+                    OrganizationFooterText.Text = message.SourcePath;
+                    OrganizationPriorityText.Text = "DISABLED";
+                    OrganizationPriorityBar.Background = Brushes.Gray;
+                    OrganizationPriorityBadge.Background =
+                        new SolidColorBrush(Color.FromArgb(55, 160, 170, 180));
+                }
+                else
+                {
+                    OrganizationHost.Visibility = Visibility.Collapsed;
+                }
 
+                return;
+            }
+
+            OrganizationHost.Visibility = Visibility.Visible;
             OrganizationNameText.Text = message.Organization;
             OrganizationTitleText.Text = message.Title;
             OrganizationMessageText.Text = string.IsNullOrWhiteSpace(message.Message)
@@ -710,6 +755,69 @@ public partial class MainWindow : Window
             _seasonCarouselTimer.Stop();
 
         RefreshBackground();
+    }
+
+    private void EnsureWidgetsInsideCanvas()
+    {
+        if (LayoutCanvas.ActualWidth <= 0 || LayoutCanvas.ActualHeight <= 0)
+            return;
+
+        foreach (var widget in Widgets())
+            EnsureWidgetInsideCanvas(widget);
+    }
+
+    private void EnsureWidgetInsideCanvas(EditableWidgetHost widget)
+    {
+        var width = widget.ActualWidth > 0
+            ? widget.ActualWidth
+            : widget.Width;
+
+        var height = widget.ActualHeight > 0
+            ? widget.ActualHeight
+            : widget.Height;
+
+        if (double.IsNaN(width) || width <= 0)
+            width = widget.DesignWidth;
+
+        if (double.IsNaN(height) || height <= 0)
+            height = widget.DesignHeight;
+
+        var maxWidth = Math.Max(widget.MinWidth, LayoutCanvas.ActualWidth - 8);
+        var maxHeight = Math.Max(widget.MinHeight, LayoutCanvas.ActualHeight - 8);
+
+        if (width > maxWidth)
+        {
+            widget.Width = maxWidth;
+            width = maxWidth;
+        }
+
+        if (height > maxHeight)
+        {
+            widget.Height = maxHeight;
+            height = maxHeight;
+        }
+
+        var left = Canvas.GetLeft(widget);
+        var top = Canvas.GetTop(widget);
+
+        if (double.IsNaN(left))
+            left = 0;
+
+        if (double.IsNaN(top))
+            top = 0;
+
+        left = Math.Clamp(
+            left,
+            0,
+            Math.Max(0, LayoutCanvas.ActualWidth - width));
+
+        top = Math.Clamp(
+            top,
+            0,
+            Math.Max(0, LayoutCanvas.ActualHeight - height));
+
+        Canvas.SetLeft(widget, left);
+        Canvas.SetTop(widget, top);
     }
 
     private static void Place(
