@@ -339,7 +339,7 @@ public sealed class WelcomeAnimationOverlay : Grid
                 Margin = new Thickness(0, 110 + i * 18, 0, 0),
                 Background = LinearHorizontal(
                     Color.FromArgb(0, 255, 187, 96),
-                    Color.FromArgb(230 - i * 35, 255, 190, 93),
+                    Color.FromArgb((byte)(230 - i * 35), 255, 190, 93),
                     Color.FromArgb(0, 255, 187, 96)),
                 RenderTransform = new TranslateTransform(-560 + i * 130, 0),
                 Opacity = .15
@@ -422,8 +422,8 @@ public sealed class WelcomeAnimationOverlay : Grid
                 Height = 170 + i * 58,
                 Stroke = new SolidColorBrush(
                     i % 2 == 0
-                        ? Color.FromArgb(150 - i * 18, 84, 189, 255)
-                        : Color.FromArgb(145 - i * 15, 255, 190, 102)),
+                        ? Color.FromArgb((byte)(150 - i * 18), 84, 189, 255)
+                        : Color.FromArgb((byte)(145 - i * 15), 255, 190, 102)),
                 StrokeThickness = i == 0 ? 2.5 : 1.2,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
