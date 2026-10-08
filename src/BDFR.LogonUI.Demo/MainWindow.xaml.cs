@@ -20,7 +20,9 @@ public partial class MainWindow : Window
     private readonly AnahitaCalendarService _calendar = new();
     private readonly CalendarBrokerClient _broker = new();
     private readonly ThemeSettingsService _themes = new();
+    private readonly GaugeStyleSettingsService _gaugeStyleService = new();
     private ThemeSettings _theme = ThemeSettingsService.Preset("Fluent");
+    private GaugeStyleSettings _gaugeStyles = new();
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _telemetryTimer;
     private readonly DispatcherTimer _brokerTimer;
@@ -70,7 +72,9 @@ public partial class MainWindow : Window
         var now = DateTime.Now;
 
         _theme = _themes.Load();
+        _gaugeStyles = _gaugeStyleService.Load();
         ApplyTheme(_theme);
+        ApplyGaugeStyles(_gaugeStyles);
 
         UpdateClock();
         BuildCalendar(now);
@@ -493,14 +497,27 @@ public partial class MainWindow : Window
 
     private void Theme_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ThemeSettingsWindow(_theme) { Owner = this };
+        var dialog = new ThemeSettingsWindow(
+            _theme,
+            _gaugeStyles)
+        {
+            Owner = this
+        };
+
         if (dialog.ShowDialog() != true)
             return;
 
         _theme = dialog.ResultSettings;
+        _gaugeStyles = dialog.ResultGaugeStyles;
+
         _themes.Save(_theme);
+        _gaugeStyleService.Save(_gaugeStyles);
+
         ApplyTheme(_theme);
-        EditStateText.Text = $"تم ذخیره شد • {_theme.Preset}";
+        ApplyGaugeStyles(_gaugeStyles);
+
+        EditStateText.Text =
+            $"تم و مدل گیج ذخیره شد • {_theme.Preset}";
     }
 
     private void ApplyTheme(ThemeSettings settings)
@@ -519,6 +536,13 @@ public partial class MainWindow : Window
             gauge.ScaleBrush = ThemeSettingsService.Brush(settings.GaugeScale, "#D3DBE5");
             gauge.LabelBrush = ThemeSettingsService.Brush(settings.GaugeLabel, "#E2E7ED");
         }
+    }
+
+    private void ApplyGaugeStyles(GaugeStyleSettings settings)
+    {
+        CpuGauge.VisualStyle = settings.Resolve("cpu");
+        RamGauge.VisualStyle = settings.Resolve("ram");
+        BatteryGauge.VisualStyle = settings.Resolve("battery");
     }
 
     private void Background_Click(object sender, RoutedEventArgs e)
