@@ -1,0 +1,16 @@
+# BDFR LogonUI organizational message file
+# Save as UTF-8.
+# Priority: Normal | Important | Critical
+# ValidFrom / ValidUntil are optional ISO/local date-time values.
+
+Enabled=true
+Organization=نام سازمان
+Title=اطلاعیه سازمانی
+Footer=واحد روابط عمومی
+Priority=Normal
+ValidFrom=
+ValidUntil=
+
+---MESSAGE---
+این متن از فایل organization-message.txt خوانده می‌شود.
+واحد IT یا مدیر سیستم می‌تواند این پیام را بدون Build مجدد تغییر دهد.
