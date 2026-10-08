@@ -1,0 +1,31 @@
+#pragma once
+
+#include <credentialprovider.h>
+
+enum BDFR_FIELD_ID : DWORD
+{
+    BFI_PROVIDER_NAME = 0,
+    BFI_STATUS_TEXT = 1,
+    BFI_INFO_LINK = 2,
+    BFI_NUM_FIELDS
+};
+
+struct BDFR_FIELD_STATE_PAIR
+{
+    CREDENTIAL_PROVIDER_FIELD_STATE state;
+    CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE interactive;
+};
+
+inline constexpr CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR BDFR_FIELDS[BFI_NUM_FIELDS] =
+{
+    { BFI_PROVIDER_NAME, CPFT_LARGE_TEXT, const_cast<PWSTR>(L"BDFR LogonUI") },
+    { BFI_STATUS_TEXT,   CPFT_SMALL_TEXT, const_cast<PWSTR>(L"Status") },
+    { BFI_INFO_LINK,     CPFT_COMMAND_LINK, const_cast<PWSTR>(L"About this preview") }
+};
+
+inline constexpr BDFR_FIELD_STATE_PAIR BDFR_FIELD_STATES[BFI_NUM_FIELDS] =
+{
+    { CPFS_DISPLAY_IN_BOTH,          CPFIS_NONE },
+    { CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE },
+    { CPFS_DISPLAY_IN_SELECTED_TILE, CPFIS_NONE }
+};
