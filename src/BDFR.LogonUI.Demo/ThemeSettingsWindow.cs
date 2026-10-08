@@ -243,7 +243,7 @@ public sealed class ThemeSettingsWindow : Window
         Foreground = Brushes.White,
         Background = ThemeSettingsService.Brush(background, "#394655"),
         BorderBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255)),
-        Padding = new Thickness(14, 8),
+        Padding = new Thickness(14, 8, 14, 8),
         Margin = new Thickness(5, 0),
         Cursor = System.Windows.Input.Cursors.Hand
     };
