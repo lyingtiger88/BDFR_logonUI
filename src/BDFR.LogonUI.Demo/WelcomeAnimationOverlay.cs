@@ -660,7 +660,7 @@ public sealed class WelcomeAnimationOverlay : Grid
         };
 
     private static void Begin(
-        Animatable target,
+        DependencyObject target,
         DependencyProperty property,
         double from,
         double to,
@@ -678,9 +678,25 @@ public sealed class WelcomeAnimationOverlay : Grid
             FillBehavior = FillBehavior.HoldEnd
         };
 
-        target.BeginAnimation(
-            property,
-            animation,
-            HandoffBehavior.SnapshotAndReplace);
+        switch (target)
+        {
+            case UIElement element:
+                element.BeginAnimation(
+                    property,
+                    animation,
+                    HandoffBehavior.SnapshotAndReplace);
+                break;
+
+            case Animatable animatable:
+                animatable.BeginAnimation(
+                    property,
+                    animation,
+                    HandoffBehavior.SnapshotAndReplace);
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Target {target.GetType().Name} does not support animation.");
+        }
     }
 }
