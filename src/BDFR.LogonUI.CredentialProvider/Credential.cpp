@@ -1,8 +1,14 @@
 #include "Credential.h"
 
-#include <new>\n#include <strsafe.h>\n\nextern long g_moduleRefCount;
+#include <new>
+#include <strsafe.h>
 
-BDFRCredential::BDFRCredential()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}
+extern volatile LONG g_moduleRefCount;
+
+BDFRCredential::BDFRCredential()
+{
+    InterlockedIncrement(&g_moduleRefCount);
+}
 
 BDFRCredential::~BDFRCredential()
 {
@@ -14,6 +20,7 @@ BDFRCredential::~BDFRCredential()
 
     CoTaskMemFree(_userSid);
     CoTaskMemFree(_displayName);
+    InterlockedDecrement(&g_moduleRefCount);
 }
 
 HRESULT BDFRCredential::Initialize(
@@ -151,7 +158,9 @@ HRESULT BDFRCredential::GetStringValue(const DWORD fieldId, PWSTR* value)
     }
 
     case BFI_INFO_LINK:
-        return SHStrDupW(L"Preview only — BDFR does not collect credentials in this milestone", value);
+        return SHStrDupW(
+            L"Preview only — BDFR does not collect credentials in this milestone",
+            value);
 
     default:
         return E_INVALIDARG;
