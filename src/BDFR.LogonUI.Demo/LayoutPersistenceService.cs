@@ -25,7 +25,8 @@ public sealed class LayoutPersistenceService
             Safe(Canvas.GetLeft(w)),
             Safe(Canvas.GetTop(w)),
             w.ActualWidth > 0 ? w.ActualWidth : w.Width,
-            w.ActualHeight > 0 ? w.ActualHeight : w.Height)).ToArray();
+            w.ActualHeight > 0 ? w.ActualHeight : w.Height,
+            w.IsWidgetEnabled)).ToArray();
 
         File.WriteAllText(_path, JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true }));
     }
@@ -51,6 +52,7 @@ public sealed class LayoutPersistenceService
                 Canvas.SetTop(widget, Math.Max(0, item.Y));
                 widget.Width = Math.Max(widget.MinWidth, item.Width);
                 widget.Height = Math.Max(widget.MinHeight, item.Height);
+                widget.IsWidgetEnabled = item.Enabled ?? true;
             }
 
             return true;
@@ -69,5 +71,11 @@ public sealed class LayoutPersistenceService
 
     private static double Safe(double value) => double.IsNaN(value) ? 0 : value;
 
-    private sealed record LayoutItem(string Id, double X, double Y, double Width, double Height);
+    private sealed record LayoutItem(
+        string Id,
+        double X,
+        double Y,
+        double Width,
+        double Height,
+        bool? Enabled = null);
 }
