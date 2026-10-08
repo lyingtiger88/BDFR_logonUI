@@ -9,6 +9,7 @@ namespace BDFR.LogonUI.Demo;
 public sealed class EditableWidgetHost : ContentControl
 {
     private Thumb? _resizeThumb;
+    private Button? _removeButton;
     private Point _dragOrigin;
     private double _originLeft;
     private double _originTop;
@@ -22,6 +23,19 @@ public sealed class EditableWidgetHost : ContentControl
     }
 
     public string WidgetId { get; set; } = Guid.NewGuid().ToString("N");
+
+    public static readonly DependencyProperty IsWidgetEnabledProperty =
+        DependencyProperty.Register(
+            nameof(IsWidgetEnabled),
+            typeof(bool),
+            typeof(EditableWidgetHost),
+            new PropertyMetadata(true));
+
+    public bool IsWidgetEnabled
+    {
+        get => (bool)GetValue(IsWidgetEnabledProperty);
+        set => SetValue(IsWidgetEnabledProperty, value);
+    }
 
     public static readonly DependencyProperty IsEditModeProperty =
         DependencyProperty.Register(nameof(IsEditMode), typeof(bool), typeof(EditableWidgetHost),
@@ -84,17 +98,25 @@ public sealed class EditableWidgetHost : ContentControl
     }
 
     public event EventHandler? LayoutChanged;
+    public event EventHandler? RemoveRequested;
 
     public override void OnApplyTemplate()
     {
         if (_resizeThumb is not null)
             _resizeThumb.DragDelta -= ResizeThumbOnDragDelta;
 
+        if (_removeButton is not null)
+            _removeButton.Click -= RemoveButtonOnClick;
+
         base.OnApplyTemplate();
 
         _resizeThumb = GetTemplateChild("PART_ResizeThumb") as Thumb;
         if (_resizeThumb is not null)
             _resizeThumb.DragDelta += ResizeThumbOnDragDelta;
+
+        _removeButton = GetTemplateChild("PART_RemoveButton") as Button;
+        if (_removeButton is not null)
+            _removeButton.Click += RemoveButtonOnClick;
     }
 
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -146,6 +168,18 @@ public sealed class EditableWidgetHost : ContentControl
         _dragging = false;
         ReleaseMouseCapture();
         Panel.SetZIndex(this, 1);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+        e.Handled = true;
+    }
+
+    private void RemoveButtonOnClick(object sender, RoutedEventArgs e)
+    {
+        if (!IsEditMode || IsLayoutLocked)
+            return;
+
+        IsWidgetEnabled = false;
+        IsSelected = false;
+        RemoveRequested?.Invoke(this, EventArgs.Empty);
         LayoutChanged?.Invoke(this, EventArgs.Empty);
         e.Handled = true;
     }
