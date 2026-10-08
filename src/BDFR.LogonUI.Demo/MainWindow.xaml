@@ -419,6 +419,7 @@
                            Margin="10,0"/>
 
                 <Button Style="{StaticResource ToolbarButton}" Content="ویرایش چیدمان" Click="EditMode_Click"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="ویجت‌ها" Click="WidgetManager_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="ذخیره" Click="Save_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="بازنشانی" Click="Reset_Click"/>
                 <Button Style="{StaticResource ToolbarPrimaryButton}" Content="پایان و قفل ویرایش" Click="FinishEdit_Click"/>
