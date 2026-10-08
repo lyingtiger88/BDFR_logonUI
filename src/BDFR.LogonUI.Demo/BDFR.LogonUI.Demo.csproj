@@ -23,5 +23,10 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <TargetPath>wallpaper\README.txt</TargetPath>
     </None>
+    <None Update="organization-message.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>organization-message.txt</TargetPath>
+    </None>
   </ItemGroup>
 </Project>
