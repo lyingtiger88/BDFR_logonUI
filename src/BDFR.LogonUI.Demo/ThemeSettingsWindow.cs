@@ -8,6 +8,7 @@ public sealed class ThemeSettingsWindow : Window
 {
     private readonly ComboBox _preset = new();
     private readonly Dictionary<string, TextBox> _fields = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Button> _swatches = new(StringComparer.Ordinal);
 
     public ThemeSettings ResultSettings { get; private set; }
 
@@ -16,10 +17,10 @@ public sealed class ThemeSettingsWindow : Window
         ResultSettings = current;
 
         Title = "BDFR LogonUI — Theme & Gauge";
-        Width = 560;
-        Height = 720;
-        MinWidth = 500;
-        MinHeight = 600;
+        Width = 610;
+        Height = 760;
+        MinWidth = 540;
+        MinHeight = 640;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = new SolidColorBrush(Color.FromRgb(20, 27, 38));
         Foreground = Brushes.White;
@@ -59,20 +60,21 @@ public sealed class ThemeSettingsWindow : Window
         };
         panel.Children.Add(_preset);
 
-        AddField(panel, "CardSurface", "رنگ شیشه / کارت", current.CardSurface);
-        AddField(panel, "CardBorder", "حاشیه کارت", current.CardBorder);
-        AddField(panel, "Accent", "Accent", current.Accent);
-        AddField(panel, "ToolbarSurface", "نوار ابزار", current.ToolbarSurface);
+        panel.Children.Add(Section("رنگ‌های رابط"));
+        AddColorField(panel, "CardSurface", "رنگ شیشه / کارت", current.CardSurface);
+        AddColorField(panel, "CardBorder", "حاشیه کارت", current.CardBorder);
+        AddColorField(panel, "Accent", "Accent", current.Accent);
+        AddColorField(panel, "ToolbarSurface", "نوار ابزار", current.ToolbarSurface);
 
         panel.Children.Add(Section("رنگ‌های گیج"));
-        AddField(panel, "GaugeTrack", "مسیر خالی", current.GaugeTrack);
-        AddField(panel, "GaugeNormal", "Normal", current.GaugeNormal);
-        AddField(panel, "GaugeWarning", "Warning", current.GaugeWarning);
-        AddField(panel, "GaugeCritical", "Critical", current.GaugeCritical);
-        AddField(panel, "GaugeMarker", "Marker", current.GaugeMarker);
-        AddField(panel, "GaugeValue", "عدد وسط", current.GaugeValue);
-        AddField(panel, "GaugeScale", "اعداد Scale", current.GaugeScale);
-        AddField(panel, "GaugeLabel", "Label", current.GaugeLabel);
+        AddColorField(panel, "GaugeTrack", "مسیر خالی", current.GaugeTrack);
+        AddColorField(panel, "GaugeNormal", "Normal", current.GaugeNormal);
+        AddColorField(panel, "GaugeWarning", "Warning", current.GaugeWarning);
+        AddColorField(panel, "GaugeCritical", "Critical", current.GaugeCritical);
+        AddColorField(panel, "GaugeMarker", "Marker", current.GaugeMarker);
+        AddColorField(panel, "GaugeValue", "عدد وسط", current.GaugeValue);
+        AddColorField(panel, "GaugeScale", "اعداد Scale", current.GaugeScale);
+        AddColorField(panel, "GaugeLabel", "Label", current.GaugeLabel);
 
         Grid.SetRow(scroll, 1);
         root.Children.Add(scroll);
@@ -110,19 +112,68 @@ public sealed class ThemeSettingsWindow : Window
         Content = root;
     }
 
-    private void AddField(Panel panel, string key, string title, string value)
+    private void AddColorField(Panel panel, string key, string title, string value)
     {
         panel.Children.Add(Label(title));
+
+        var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+
         var box = new TextBox
         {
             Text = value,
-            Margin = new Thickness(0, 0, 0, 10),
-            Height = 30,
+            Height = 32,
             Padding = new Thickness(7, 4, 7, 4),
-            FlowDirection = FlowDirection.LeftToRight
+            Margin = new Thickness(0, 0, 8, 0),
+            FlowDirection = FlowDirection.LeftToRight,
+            VerticalContentAlignment = VerticalAlignment.Center
         };
+
+        var swatch = new Button
+        {
+            Width = 42,
+            Height = 32,
+            BorderBrush = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            Background = ThemeSettingsService.Brush(value, "#FFFFFF"),
+            ToolTip = "باز کردن Color Wheel"
+        };
+
+        swatch.Click += (_, _) =>
+        {
+            var picker = new ColorPickerWindow(box.Text) { Owner = this };
+            if (picker.ShowDialog() != true)
+                return;
+
+            box.Text = picker.SelectedHex;
+            UpdateSwatch(key);
+            _preset.SelectedItem = null;
+        };
+
+        box.TextChanged += (_, _) =>
+        {
+            UpdateSwatch(key);
+            if (IsLoaded)
+                _preset.SelectedItem = null;
+        };
+
         _fields[key] = box;
-        panel.Children.Add(box);
+        _swatches[key] = swatch;
+
+        Grid.SetColumn(box, 0);
+        Grid.SetColumn(swatch, 1);
+        row.Children.Add(box);
+        row.Children.Add(swatch);
+        panel.Children.Add(row);
+    }
+
+    private void UpdateSwatch(string key)
+    {
+        if (!_fields.TryGetValue(key, out var box) || !_swatches.TryGetValue(key, out var swatch))
+            return;
+
+        swatch.Background = ThemeSettingsService.Brush(box.Text, "#FFFFFF");
     }
 
     private void LoadIntoFields(ThemeSettings s)
@@ -143,8 +194,11 @@ public sealed class ThemeSettingsWindow : Window
 
     private void Set(string key, string value)
     {
-        if (_fields.TryGetValue(key, out var box))
-            box.Text = value;
+        if (!_fields.TryGetValue(key, out var box))
+            return;
+
+        box.Text = value;
+        UpdateSwatch(key);
     }
 
     private ThemeSettings ReadSettings() => new(
@@ -189,8 +243,8 @@ public sealed class ThemeSettingsWindow : Window
         Foreground = Brushes.White,
         Background = ThemeSettingsService.Brush(background, "#394655"),
         BorderBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255)),
-        Padding = new Thickness(14, 8, 14, 8),
-        Margin = new Thickness(5, 0, 5, 0),
+        Padding = new Thickness(14, 8),
+        Margin = new Thickness(5, 0),
         Cursor = System.Windows.Input.Cursors.Hand
     };
 }

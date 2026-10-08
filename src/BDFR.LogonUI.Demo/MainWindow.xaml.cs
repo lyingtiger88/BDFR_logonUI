@@ -414,9 +414,9 @@ public partial class MainWindow : Window
         BackgroundImage.Source = image;
         BackgroundImage.Visibility = image is null ? Visibility.Collapsed : Visibility.Visible;
 
-        ElenaButton.Content = _backgrounds.ElenaMode
-            ? "Elena: روشن"
-            : "Elena: خاموش";
+        SeasonCarouselButton.Content = _backgrounds.SeasonCarouselMode
+            ? "Season Carousel: روشن"
+            : "Season Carousel: خاموش";
 
         var activeName = string.IsNullOrWhiteSpace(_backgrounds.ActivePath)
             ? "بدون فایل تصویری"
@@ -539,22 +539,10 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Elena_Click(object sender, RoutedEventArgs e)
+    private void SeasonCarousel_Click(object sender, RoutedEventArgs e)
     {
-        _backgrounds.SetElenaMode(!_backgrounds.ElenaMode);
+        _backgrounds.SetSeasonCarouselMode(!_backgrounds.SeasonCarouselMode);
         RefreshBackground();
-    }
-
-    private void OpenBackgroundFolder_Click(object sender, RoutedEventArgs e)
-    {
-        Directory.CreateDirectory(_backgrounds.BackgroundFolder);
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "explorer.exe",
-            Arguments = $"\\\"{_backgrounds.BackgroundFolder}\\\"",
-            UseShellExecute = true
-        });
     }
 
     private static void Place(

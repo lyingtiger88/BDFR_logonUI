@@ -22,11 +22,10 @@ public sealed class SeasonalBackgroundService
         _settings = LoadSettings();
     }
 
-    public bool ElenaMode => _settings.ElenaMode;
-    public string BackgroundFolder => _root;
+    public bool SeasonCarouselMode => _settings.ElenaMode;
     public string? ActivePath { get; private set; }
 
-    public void SetElenaMode(bool enabled)
+    public void SetSeasonCarouselMode(bool enabled)
     {
         _settings = _settings with { ElenaMode = enabled };
         SaveSettings();
@@ -77,7 +76,7 @@ public sealed class SeasonalBackgroundService
     public string CurrentModeLabel(DateTime now)
     {
         if (_settings.ElenaMode)
-            return $"Elena • {GetSeason(now)}";
+            return $"Season Carousel • {GetSeason(now)}";
 
         return string.IsNullOrWhiteSpace(_settings.CustomPath)
             ? "پس‌زمینه پیش‌فرض"
