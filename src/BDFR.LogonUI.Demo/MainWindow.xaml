@@ -421,7 +421,8 @@
                 <Button Style="{StaticResource ToolbarButton}" Content="بازنشانی" Click="Reset_Click"/>
                 <Button Style="{StaticResource ToolbarPrimaryButton}" Content="پایان و قفل ویرایش" Click="FinishEdit_Click"/>
 
-                <Button Style="{StaticResource ToolbarButton}" Content="تم و گیج" Click="Theme_Click"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="تم، گیج و خوش‌آمد" Click="Theme_Click"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="تست خوش‌آمد" Click="WelcomePreview_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="پیام سازمانی" Click="OrganizationMessage_Click"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="پس‌زمینه" Click="Background_Click"/>
                 <Button x:Name="SeasonCarouselButton" Style="{StaticResource ToolbarButton}" Content="Season Carousel: خاموش" Click="SeasonCarousel_Click"/>
@@ -430,6 +431,9 @@
                 <Button Style="{StaticResource ToolbarButton}" Content="خروج" Click="Exit_Click" Background="#50333B49"/>
             </StackPanel>
         </Border>
+
+        <local:WelcomeAnimationOverlay x:Name="WelcomeOverlay"
+                                       Panel.ZIndex="2000"/>
 
         <Border HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
