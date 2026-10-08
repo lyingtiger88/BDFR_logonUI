@@ -1,8 +1,8 @@
 #include "Credential.h"
 
-#include <new>
+#include <new>\n#include <strsafe.h>\n\nextern long g_moduleRefCount;
 
-BDFRCredential::BDFRCredential() = default;
+BDFRCredential::BDFRCredential()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}
 
 BDFRCredential::~BDFRCredential()
 {
