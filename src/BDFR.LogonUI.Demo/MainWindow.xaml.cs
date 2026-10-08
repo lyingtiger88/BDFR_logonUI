@@ -64,6 +64,7 @@ public partial class MainWindow : Window
         _organizationMessageTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _organizationMessageTimer.Tick += (_, _) => RefreshOrganizationMessageIfChanged();
 
+        WireWidgetEvents();
         LayoutCanvas.SizeChanged += (_, _) => EnsureWidgetsInsideCanvas();
         Loaded += OnLoaded;
         Closed += (_, _) =>
@@ -122,6 +123,53 @@ public partial class MainWindow : Window
 
     private IEnumerable<EditableWidgetHost> Widgets() =>
         LayoutCanvas.Children.OfType<EditableWidgetHost>();
+
+    private void WireWidgetEvents()
+    {
+        foreach (var widget in Widgets())
+        {
+            widget.RemoveRequested += (_, _) =>
+            {
+                _layout.Save(Widgets());
+                EditStateText.Text = "ویجت از صفحه حذف شد؛ از «ویجت‌ها» می‌توانی برگردانیش.";
+            };
+        }
+    }
+
+    private IReadOnlyList<WidgetManagerItem> WidgetManagerItems() =>
+        new WidgetManagerItem[]
+        {
+            new("calendar", "تقویم", "تقویم شمسی/میلادی/قمری و برنامه‌های امروز", CalendarHost),
+            new("clock", "ساعت و تاریخ", "ساعت بزرگ و تاریخ‌های اصلی صفحه", ClockHost),
+            new("notifications", "اعلان‌ها", "اعلان‌های Anahita، Sentinel و Windows", NotificationsHost),
+            new("system-status-header", "عنوان وضعیت سیستم", "هدر وضعیت زنده سیستم", SystemHost),
+            new("gauge-cpu", "گیج CPU", "نمایش مصرف لحظه‌ای پردازنده", CpuGaugeHost),
+            new("gauge-ram", "گیج RAM", "نمایش مصرف لحظه‌ای حافظه", RamGaugeHost),
+            new("gauge-battery", "گیج باتری", "وضعیت باتری یا برق AC", BatteryGaugeHost),
+            new("organization-message", "پیام سازمانی", "اطلاعیه و پیام مدیریت‌شده از فایل متنی", OrganizationHost),
+            new("quick-status", "وضعیت سریع", "Network، Display، Power و زبان", QuickHost),
+            new("unlock-hint", "راهنمای ورود", "پیام راهنمای ورود و وضعیت Standalone", UnlockHost)
+        };
+
+    private void WidgetManager_Click(object sender, RoutedEventArgs e)
+    {
+        var manager = new WidgetManagerWindow(WidgetManagerItems())
+        {
+            Owner = this
+        };
+
+        manager.ShowDialog();
+
+        if (!manager.Changed)
+            return;
+
+        RefreshOrganizationMessage(force: true);
+        EnsureWidgetsInsideCanvas();
+        _layout.Save(Widgets());
+
+        var visibleCount = Widgets().Count(w => w.IsWidgetEnabled);
+        EditStateText.Text = $"ویجت‌ها ذخیره شدند • {visibleCount} فعال";
+    }
 
     private void UpdateClock()
     {
@@ -509,6 +557,9 @@ public partial class MainWindow : Window
         Place(QuickHost, 30, 600, 270, 88);
         Place(UnlockHost, 570, 610, 420, 82);
 
+        foreach (var widget in Widgets())
+            widget.IsWidgetEnabled = true;
+
         SetEditMode(true);
         EditStateText.Text = "چیدمان پیش‌فرض بازیابی شد";
     }
@@ -630,6 +681,12 @@ public partial class MainWindow : Window
 
         try
         {
+            if (!OrganizationHost.IsWidgetEnabled)
+            {
+                OrganizationHost.Visibility = Visibility.Collapsed;
+                return;
+            }
+
             var message = _organizationMessages.Load();
             var now = DateTimeOffset.Now;
             var active = message.IsActive(now);
