@@ -14,20 +14,23 @@ public sealed class ColorPickerWindow : Window
     private readonly TextBox _red = new();
     private readonly TextBox _green = new();
     private readonly TextBox _blue = new();
+    private readonly TextBox _alpha = new();
     private bool _updatingFields;
+    private byte _alphaValue = 255;
 
     public string SelectedHex { get; private set; }
 
     public ColorPickerWindow(string initialHex)
     {
         var initialColor = ParseColor(initialHex, Colors.White);
+        _alphaValue = initialColor.A;
         SelectedHex = ToHex(initialColor);
 
         Title = "BDFR Color Picker";
-        Width = 500;
-        Height = 610;
-        MinWidth = 460;
-        MinHeight = 560;
+        Width = 540;
+        Height = 620;
+        MinWidth = 500;
+        MinHeight = 570;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = new SolidColorBrush(Color.FromRgb(18, 23, 31));
         Foreground = Brushes.White;
@@ -61,9 +64,10 @@ public sealed class ColorPickerWindow : Window
         var fields = new Grid { Margin = new Thickness(4, 4, 4, 12) };
         fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(76) });
         fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        fields.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
 
         _preview.Width = 58;
         _preview.Height = 36;
@@ -83,17 +87,21 @@ public sealed class ColorPickerWindow : Window
         ConfigureBox(_red, 3);
         ConfigureBox(_green, 3);
         ConfigureBox(_blue, 3);
+        ConfigureBox(_alpha, 3);
 
         Grid.SetColumn(_red, 2);
         Grid.SetColumn(_green, 3);
         Grid.SetColumn(_blue, 4);
+        Grid.SetColumn(_alpha, 5);
         fields.Children.Add(_red);
         fields.Children.Add(_green);
         fields.Children.Add(_blue);
+        fields.Children.Add(_alpha);
 
         AddTinyLabel(fields, "R", 2);
         AddTinyLabel(fields, "G", 3);
         AddTinyLabel(fields, "B", 4);
+        AddTinyLabel(fields, "A", 5);
 
         Grid.SetRow(fields, 2);
         root.Children.Add(fields);
@@ -108,7 +116,7 @@ public sealed class ColorPickerWindow : Window
         ok.Click += (_, _) =>
         {
             CommitFields();
-            SelectedHex = ToHex(_wheel.SelectedColor);
+            SelectedHex = ToHex(CurrentColor());
             DialogResult = true;
         };
 
@@ -153,6 +161,7 @@ public sealed class ColorPickerWindow : Window
 
         if (TryParseColor(_hex.Text, out var hexColor))
         {
+            _alphaValue = hexColor.A;
             _wheel.SetColor(hexColor);
             return;
         }
@@ -161,6 +170,9 @@ public sealed class ColorPickerWindow : Window
             && byte.TryParse(_green.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var g)
             && byte.TryParse(_blue.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var b))
         {
+            if (byte.TryParse(_alpha.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var a))
+                _alphaValue = a;
+
             _wheel.SetColor(Color.FromRgb(r, g, b));
         }
     }
@@ -171,18 +183,26 @@ public sealed class ColorPickerWindow : Window
 
         try
         {
-            var color = _wheel.SelectedColor;
+            var rgb = _wheel.SelectedColor;
+            var color = Color.FromArgb(_alphaValue, rgb.R, rgb.G, rgb.B);
             SelectedHex = ToHex(color);
             _hex.Text = SelectedHex;
             _red.Text = color.R.ToString(CultureInfo.InvariantCulture);
             _green.Text = color.G.ToString(CultureInfo.InvariantCulture);
             _blue.Text = color.B.ToString(CultureInfo.InvariantCulture);
+            _alpha.Text = color.A.ToString(CultureInfo.InvariantCulture);
             _preview.Background = new SolidColorBrush(color);
         }
         finally
         {
             _updatingFields = false;
         }
+    }
+
+    private Color CurrentColor()
+    {
+        var rgb = _wheel.SelectedColor;
+        return Color.FromArgb(_alphaValue, rgb.R, rgb.G, rgb.B);
     }
 
     private static void AddTinyLabel(Grid grid, string text, int column)
