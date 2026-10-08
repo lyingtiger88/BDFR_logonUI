@@ -47,7 +47,7 @@ HRESULT BDFRCredential::Initialize(
     return hr;
 }
 
-HRESULT BDFRCredential::QueryInterface(const REFIID riid, void** object)
+HRESULT BDFRCredential::QueryInterface(REFIID riid, void** object)
 {
     if (!object)
         return E_POINTER;
