@@ -5,7 +5,7 @@
 
 extern long g_moduleRefCount;
 
-BDFRClassFactory::BDFRClassFactory() = default;
+BDFRClassFactory::BDFRClassFactory()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}\n\nBDFRClassFactory::~BDFRClassFactory()\n{\n    InterlockedDecrement(&g_moduleRefCount);\n}
 
 HRESULT BDFRClassFactory::QueryInterface(const REFIID riid, void** object)
 {
