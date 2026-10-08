@@ -2,9 +2,14 @@
 #include "FieldDefinitions.h"
 
 #include <shlwapi.h>
-#include <new>\n\nextern long g_moduleRefCount;
+#include <new>
 
-BDFRProvider::BDFRProvider()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}
+extern volatile LONG g_moduleRefCount;
+
+BDFRProvider::BDFRProvider()
+{
+    InterlockedIncrement(&g_moduleRefCount);
+}
 
 BDFRProvider::~BDFRProvider()
 {
@@ -15,6 +20,8 @@ BDFRProvider::~BDFRProvider()
         _users->Release();
         _users = nullptr;
     }
+
+    InterlockedDecrement(&g_moduleRefCount);
 }
 
 HRESULT BDFRProvider::QueryInterface(const REFIID riid, void** object)
@@ -145,7 +152,7 @@ HRESULT BDFRProvider::GetCredentialCount(
     if (SUCCEEDED(hr) && _credential)
         *count = 1;
 
-    return SUCCEEDED(hr) ? S_OK : hr;
+    return FAILED(hr) ? hr : S_OK;
 }
 
 HRESULT BDFRProvider::GetCredentialAt(
