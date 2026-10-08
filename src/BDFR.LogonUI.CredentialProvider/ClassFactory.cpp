@@ -3,9 +3,17 @@
 
 #include <new>
 
-extern long g_moduleRefCount;
+extern volatile LONG g_moduleRefCount;
 
-BDFRClassFactory::BDFRClassFactory()\n{\n    InterlockedIncrement(&g_moduleRefCount);\n}\n\nBDFRClassFactory::~BDFRClassFactory()\n{\n    InterlockedDecrement(&g_moduleRefCount);\n}
+BDFRClassFactory::BDFRClassFactory()
+{
+    InterlockedIncrement(&g_moduleRefCount);
+}
+
+BDFRClassFactory::~BDFRClassFactory()
+{
+    InterlockedDecrement(&g_moduleRefCount);
+}
 
 HRESULT BDFRClassFactory::QueryInterface(const REFIID riid, void** object)
 {
@@ -53,10 +61,8 @@ HRESULT BDFRClassFactory::CreateInstance(
     if (!provider)
         return E_OUTOFMEMORY;
 
-    InterlockedIncrement(&g_moduleRefCount);
     const HRESULT hr = provider->QueryInterface(riid, object);
     provider->Release();
-    InterlockedDecrement(&g_moduleRefCount);
     return hr;
 }
 
