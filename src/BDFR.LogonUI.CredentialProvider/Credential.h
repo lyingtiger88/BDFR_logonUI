@@ -7,6 +7,7 @@
 #include <atomic>
 
 #include "FieldDefinitions.h"
+#include "SecureExperienceLauncher.h"
 
 class BDFRCredential final : public ICredentialProviderCredential2
 {
@@ -60,4 +61,5 @@ private:
     ICredentialProviderCredentialEvents* _events{nullptr};
     PWSTR _userSid{nullptr};
     PWSTR _displayName{nullptr};
+    SecureExperienceLauncher _secureExperience;
 };
