@@ -150,7 +150,10 @@ HRESULT BDFRProvider::GetCredentialCount(
 
     const HRESULT hr = EnsureCredential();
     if (SUCCEEDED(hr) && _credential)
+    {
         *count = 1;
+        *defaultCredential = 0;
+    }
 
     return FAILED(hr) ? hr : S_OK;
 }
