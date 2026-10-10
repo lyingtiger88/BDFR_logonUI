@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _organizationMessageTimer;
 
     private bool _brokerRefreshInFlight;
+    private readonly bool _secureLockMode;
 
     private bool _editMode = true;
     private bool _fullScreen;
@@ -41,8 +42,9 @@ public partial class MainWindow : Window
     private WindowState _previousState;
     private ResizeMode _previousResizeMode;
 
-    public MainWindow()
+    public MainWindow(bool secureLockMode = false)
     {
+        _secureLockMode = secureLockMode;
         InitializeComponent();
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -100,12 +102,22 @@ public partial class MainWindow : Window
 
         var hasSavedLayout = _layout.TryLoad(Widgets());
         EnsureWidgetsInsideCanvas();
-        SetEditMode(!hasSavedLayout);
+        SetEditMode(_secureLockMode ? false : !hasSavedLayout);
         RefreshOrganizationMessage(force: true);
+
+        if (_secureLockMode)
+            EnterSecureLockMode();
 
         _clockTimer.Start();
         _telemetryTimer.Start();
         _organizationMessageTimer.Start();
+
+        if (_secureLockMode)
+        {
+            AgendaBrokerStateText.Text = "Secure Desktop";
+            ShowBrokerOfflineState();
+            return;
+        }
 
         AgendaBrokerStateText.Text = "Broker…";
         if (await _broker.EnsureBrokerAsync())
@@ -119,6 +131,35 @@ public partial class MainWindow : Window
             AgendaBrokerStateText.Text = "Broker offline";
             ShowBrokerOfflineState();
         }
+    }
+
+    private void EnterSecureLockMode()
+    {
+        Title = "BDFR LogonUI — Secure Lock Experience";
+        ToolbarBorder.Visibility = Visibility.Collapsed;
+        DemoStatusBorder.Visibility = Visibility.Collapsed;
+        EditGridOverlay.Visibility = Visibility.Collapsed;
+
+        LayoutCanvas.Margin = new Thickness(24, 28, 24, 28);
+
+        UnlockPrimaryText.Text = "برای ورود، احراز هویت امن ویندوز را ادامه بده";
+        UnlockSecondaryText.Text = "SECURE DESKTOP • WINDOWS AUTHENTICATION";
+        SecureUnlockButton.Visibility = Visibility.Visible;
+
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
+        WindowState = WindowState.Maximized;
+        Topmost = true;
+        ShowInTaskbar = false;
+        _fullScreen = true;
+    }
+
+    private void SecureUnlock_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_secureLockMode)
+            return;
+
+        Close();
     }
 
     private IEnumerable<EditableWidgetHost> Widgets() =>
@@ -920,6 +961,17 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (_secureLockMode)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Escape)
+            {
+                Close();
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         if (e.Key == Key.F11)
         {
             ToggleFullscreen();
