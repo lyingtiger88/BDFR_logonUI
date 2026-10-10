@@ -12,8 +12,6 @@ BDFRCredential::BDFRCredential()
 
 BDFRCredential::~BDFRCredential()
 {
-    _secureExperience.Stop();
-
     if (_events)
     {
         _events->Release();
@@ -90,16 +88,11 @@ HRESULT BDFRCredential::Advise(ICredentialProviderCredentialEvents* events)
 
     _events = events;
     _events->AddRef();
-
-    // Fail open: if the secure experience cannot launch, LogonUI remains usable.
-    _secureExperience.Start();
     return S_OK;
 }
 
 HRESULT BDFRCredential::UnAdvise()
 {
-    _secureExperience.Stop();
-
     if (_events)
     {
         _events->Release();
@@ -115,13 +108,11 @@ HRESULT BDFRCredential::SetSelected(BOOL* autoLogon)
         return E_POINTER;
 
     *autoLogon = FALSE;
-    _secureExperience.Start();
     return S_OK;
 }
 
 HRESULT BDFRCredential::SetDeselected()
 {
-    _secureExperience.Stop();
     return S_OK;
 }
 
