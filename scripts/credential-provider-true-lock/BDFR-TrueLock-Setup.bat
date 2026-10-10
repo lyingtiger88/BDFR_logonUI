@@ -45,13 +45,12 @@ if not exist "%DLL%" (
   pause
   goto MENU
 )
-if not exist "%EXPERIENCE%" (
-  echo BDFR LogonUI is not installed at:
-  echo %EXPERIENCE%
+if not exist "%ROOT%BDFR.LogonUI.Demo.exe" (
+  echo Missing bundled BDFR.LogonUI.Demo.exe.
   pause
   goto MENU
 )
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALL%" -DllPath "%DLL%" -ExperiencePath "%EXPERIENCE%" -RollbackMinutes 15 -Confirmation "I-UNDERSTAND-BDFR-TRUE-LOCK-TEST"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALL%" -DllPath "%DLL%" -ExperiencePath "%EXPERIENCE%" -PackagedExperiencePath "%ROOT%BDFR.LogonUI.Demo.exe" -RollbackMinutes 15 -Confirmation "I-UNDERSTAND-BDFR-TRUE-LOCK-TEST"
 echo.
 echo First test: do not reboot. Press Win+L.
 pause
