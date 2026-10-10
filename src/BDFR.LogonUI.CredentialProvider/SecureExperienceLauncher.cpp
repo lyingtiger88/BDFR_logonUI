@@ -1,6 +1,7 @@
 #include "SecureExperienceLauncher.h"
 
 #include <vector>
+#include <strsafe.h>
 
 namespace
 {
