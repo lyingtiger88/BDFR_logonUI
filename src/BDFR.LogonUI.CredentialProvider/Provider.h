@@ -5,6 +5,7 @@
 #include <atomic>
 
 #include "Credential.h"
+#include "SecureExperienceLauncher.h"
 
 class BDFRProvider final :
     public ICredentialProvider,
@@ -45,4 +46,5 @@ private:
     CREDENTIAL_PROVIDER_USAGE_SCENARIO _scenario{CPUS_INVALID};
     ICredentialProviderUserArray* _users{nullptr};
     BDFRCredential* _credential{nullptr};
+    SecureExperienceLauncher _secureExperience;
 };
