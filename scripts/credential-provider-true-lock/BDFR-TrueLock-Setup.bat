@@ -24,15 +24,17 @@ echo   1. Preflight check
 echo   2. Install / Enable True Lock
 echo   3. Roll back True Lock
 echo   4. Cancel automatic rollback
-echo   5. Exit
+echo   5. Diagnostics
+echo   6. Exit
 echo.
-set /p "CHOICE=Select 1-5: "
+set /p "CHOICE=Select 1-6: "
 
 if "%CHOICE%"=="1" goto PREFLIGHT
 if "%CHOICE%"=="2" goto INSTALL_TRUELOCK
 if "%CHOICE%"=="3" goto ROLLBACK_TRUELOCK
 if "%CHOICE%"=="4" goto CANCEL_ROLLBACK
-if "%CHOICE%"=="5" goto END
+if "%CHOICE%"=="5" goto DIAGNOSTICS
+if "%CHOICE%"=="6" goto END
 goto MENU
 
 :PREFLIGHT
@@ -64,6 +66,18 @@ goto MENU
 
 :CANCEL_ROLLBACK
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CANCEL%"
+pause
+goto MENU
+
+:DIAGNOSTICS
+cls
+echo ============================================================
+echo                BDFR TRUE LOCK DIAGNOSTICS
+echo ============================================================
+echo.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
+  "Write-Host '--- BDFR settings ---'; Get-ItemProperty 'HKLM:\SOFTWARE\BDFR\LogonUI' -ErrorAction SilentlyContinue; Write-Host ''; Write-Host '--- Default Credential Provider ---'; Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name DefaultCredentialProvider -ErrorAction SilentlyContinue; Write-Host ''; Write-Host '--- BDFR Provider Registration ---'; Get-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{55C142FF-F7C7-4A89-B6F1-1D64855CD366}' -ErrorAction SilentlyContinue; Write-Host ''; Write-Host '--- Experience ---'; Get-Item '%EXPERIENCE%' -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime; Write-Host ''; Write-Host '--- Secure launch log ---'; $p='$env:ProgramData\BDFR\LogonUI\CredentialProvider\secure-experience-launch.log'; if(Test-Path $p){Get-Content $p -Tail 40}else{Write-Host 'No secure launch log yet.'}"
+echo.
 pause
 goto MENU
 
