@@ -213,6 +213,14 @@ if ($customLogonSupported) {
     New-ItemProperty -Path $embeddedLogon -Name "UIVerbosityLevel" -PropertyType DWord -Value 1 -Force | Out-Null
 }
 
+Write-Host "Refreshing Windows computer policy..."
+try {
+    & "$env:SystemRoot\System32\gpupdate.exe" /target:computer /force | Out-Null
+}
+catch {
+    Write-Warning "gpupdate failed; the settings are still written and will be read on the next LogonUI start."
+}
+
 $rollbackAt = (Get-Date).AddMinutes($RollbackMinutes)
 
 Write-Host ""
