@@ -9,6 +9,7 @@ set "INSTALL=%ROOT%Install-BDFRTrueLock.ps1"
 set "ROLLBACK=%ROOT%Rollback-BDFRTrueLock.ps1"
 set "CANCEL=%ROOT%Cancel-BDFRTrueLockRollback.ps1"
 set "EXPERIENCE=%ProgramFiles%\BDFR\LogonUI\BDFR.LogonUI.Demo.exe"
+set "PACKAGE_EXPERIENCE=%ROOT%BDFR.LogonUI.Demo.exe"
 set "STATE=%ProgramData%\BDFR\LogonUI\CredentialProvider\true-lock-state.json"
 
 :MENU
@@ -35,7 +36,7 @@ if "%CHOICE%"=="5" goto END
 goto MENU
 
 :PREFLIGHT
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PREFLIGHT%" -ExperiencePath "%EXPERIENCE%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PREFLIGHT%" -ExperiencePath "%PACKAGE_EXPERIENCE%"
 pause
 goto MENU
 
