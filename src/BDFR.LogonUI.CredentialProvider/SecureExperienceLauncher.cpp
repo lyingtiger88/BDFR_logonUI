@@ -4,6 +4,68 @@
 
 namespace
 {
+void WriteLauncherLog(const std::wstring& message)
+{
+    wchar_t programData[MAX_PATH]{};
+    const DWORD length = GetEnvironmentVariableW(
+        L"ProgramData",
+        programData,
+        ARRAYSIZE(programData));
+
+    if (length == 0 || length >= ARRAYSIZE(programData))
+        return;
+
+    std::wstring root = programData;
+    root += L"\\BDFR\\LogonUI\\CredentialProvider";
+
+    CreateDirectoryW((std::wstring(programData) + L"\\BDFR").c_str(), nullptr);
+    CreateDirectoryW((std::wstring(programData) + L"\\BDFR\\LogonUI").c_str(), nullptr);
+    CreateDirectoryW(root.c_str(), nullptr);
+
+    std::wstring path = root + L"\\secure-experience-launch.log";
+
+    HANDLE file = CreateFileW(
+        path.c_str(),
+        FILE_APPEND_DATA,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+
+    if (file == INVALID_HANDLE_VALUE)
+        return;
+
+    SYSTEMTIME st{};
+    GetLocalTime(&st);
+
+    wchar_t prefix[96]{};
+    StringCchPrintfW(
+        prefix,
+        ARRAYSIZE(prefix),
+        L"%04u-%02u-%02u %02u:%02u:%02u ",
+        st.wYear,
+        st.wMonth,
+        st.wDay,
+        st.wHour,
+        st.wMinute,
+        st.wSecond);
+
+    std::wstring line = prefix;
+    line += message;
+    line += L"\r\n";
+
+    DWORD written = 0;
+    WriteFile(
+        file,
+        line.data(),
+        static_cast<DWORD>(line.size() * sizeof(wchar_t)),
+        &written,
+        nullptr);
+
+    CloseHandle(file);
+}
+
 constexpr wchar_t kSettingsKey[] = L"SOFTWARE\\BDFR\\LogonUI";
 constexpr wchar_t kEnabledValue[] = L"TrueLockEnabled";
 constexpr wchar_t kPathValue[] = L"SecureExperiencePath";
@@ -156,7 +218,10 @@ std::wstring SecureExperienceLauncher::CurrentDesktopSpec()
 HRESULT SecureExperienceLauncher::Start()
 {
     if (!IsEnabled())
+    {
+        WriteLauncherLog(L"Start skipped: TrueLockEnabled is not 1.");
         return S_FALSE;
+    }
 
     if (_process)
     {
@@ -172,6 +237,7 @@ HRESULT SecureExperienceLauncher::Start()
     if (executable.empty() ||
         GetFileAttributesW(executable.c_str()) == INVALID_FILE_ATTRIBUTES)
     {
+        WriteLauncherLog(L"Start failed: secure experience executable was not found.");
         return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
     }
 
@@ -183,6 +249,10 @@ HRESULT SecureExperienceLauncher::Start()
     mutableCommand.push_back(L'\0');
 
     auto desktopSpec = CurrentDesktopSpec();
+    WriteLauncherLog(
+        L"Attempting launch on desktop: " +
+        (desktopSpec.empty() ? std::wstring(L"(default)") : desktopSpec) +
+        L" | exe=" + executable);
 
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
@@ -207,12 +277,21 @@ HRESULT SecureExperienceLauncher::Start()
         &process);
 
     if (!created)
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        WriteLauncherLog(
+            L"CreateProcessW failed. Win32=" +
+            std::to_wstring(error));
+        return HRESULT_FROM_WIN32(error);
+    }
 
     CloseHandle(process.hThread);
 
     _process = process.hProcess;
     _processId = process.dwProcessId;
+    WriteLauncherLog(
+        L"Secure experience launched. PID=" +
+        std::to_wstring(_processId));
     return S_OK;
 }
 
