@@ -7,6 +7,7 @@ namespace BDFR.LogonUI.Demo;
 
 public partial class App : Application
 {
+    private static bool _secureLockMode;
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -14,9 +15,12 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
+        _secureLockMode = e.Args.Any(arg =>
+            string.Equals(arg, "--secure-lock", StringComparison.OrdinalIgnoreCase));
+
         try
         {
-            var window = new MainWindow();
+            var window = new MainWindow(_secureLockMode);
             MainWindow = window;
             window.Show();
             window.Activate();
@@ -31,6 +35,13 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         WriteCrashLog("DispatcherUnhandledException", e.Exception);
+
+        if (_secureLockMode)
+        {
+            e.Handled = true;
+            Current.Shutdown(-2);
+            return;
+        }
 
         MessageBox.Show(
             $"BDFR LogonUI Demo encountered an error.\n\n{e.Exception.Message}\n\nA diagnostic log was saved to:\n{GetCrashLogPath()}",
@@ -50,6 +61,9 @@ public partial class App : Application
     private static void ReportFatalStartupError(Exception ex)
     {
         WriteCrashLog("Startup failure", ex);
+
+        if (_secureLockMode)
+            return;
 
         MessageBox.Show(
             $"BDFR LogonUI Demo could not start.\n\n{ex.Message}\n\nA diagnostic log was saved to:\n{GetCrashLogPath()}",
