@@ -1,5 +1,7 @@
 #define MyAppName "BDFR LogonUI"
-#define MyAppVersion "0.9-preview"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.9-preview"
+#endif
 #define MyAppPublisher "BDFR"
 #define MyAppExeName "BDFR.LogonUI.Demo.exe"
 
