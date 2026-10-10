@@ -66,15 +66,45 @@ jobs:
 
           Copy-Item $brokerExe "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe" -Force
 
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --yes --no-progress
+          }
+
+          if (-not (Test-Path $iscc)) {
+            throw "Inno Setup compiler was not found after installation."
+          }
+
+          $shortSha = (git rev-parse --short=8 HEAD).Trim()
+          $version = "0.9.$env:GITHUB_RUN_NUMBER-$shortSha"
+
+          & $iscc "/DMyAppVersion=$version" "installer\\BDFR_LogonUI_Setup.iss"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup compilation failed with exit code $LASTEXITCODE."
+          }
+
+          $setup = "artifacts\\installer\\BDFR_LogonUI_Setup.exe"
+          if (-not (Test-Path $setup)) {
+            throw "Installer executable was not produced at $setup"
+          }
+
+          Write-Host "Installer built: $setup"
+          "SETUP_PATH=$setup" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Validate PR build outputs
         if: github.event_name == 'pull_request'
         shell: pwsh
         run: |
           $demo = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Demo.exe"
           $broker = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe"
+          $setup = "artifacts/installer/BDFR_LogonUI_Setup.exe"
           if (-not (Test-Path $demo)) { throw "Demo executable missing." }
           if (-not (Test-Path $broker)) { throw "Broker executable missing." }
-          Write-Host "PR validation passed: Demo + Broker published successfully."
+          if (-not (Test-Path $setup)) { throw "Windows installer missing." }
+          Write-Host "PR validation passed: Demo + Broker + Windows installer built successfully."
 
       - name: Prepare permanent build package
         if: github.event_name != 'pull_request'
@@ -87,6 +117,9 @@ jobs:
           $exePath = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Demo.exe"
           $brokerPath = "artifacts/BDFR_LogonUI_Demo/BDFR.LogonUI.Broker.exe"
           $hashPath = "artifacts/$baseName.sha256.txt"
+          $setupPath = "artifacts/installer/BDFR_LogonUI_Setup.exe"
+          $setupReleasePath = "artifacts/BDFR_LogonUI_Setup-$tag-win-x64.exe"
+          $setupHashPath = "artifacts/BDFR_LogonUI_Setup-$tag-win-x64.sha256.txt"
 
           if (-not (Test-Path $exePath)) {
             throw "Published executable was not found at $exePath"
@@ -96,15 +129,26 @@ jobs:
             throw "Packaged broker executable was not found at $brokerPath"
           }
 
+          if (-not (Test-Path $setupPath)) {
+            throw "Windows installer was not found at $setupPath"
+          }
+
+          Copy-Item $setupPath $setupReleasePath -Force
+
           Compress-Archive -Path "artifacts/BDFR_LogonUI_Demo/*" -DestinationPath $zipPath -Force
 
           $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $baseName.zip" | Set-Content -Path $hashPath -Encoding ascii
 
+          $setupHash = (Get-FileHash $setupReleasePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$setupHash  $(Split-Path $setupReleasePath -Leaf)" | Set-Content -Path $setupHashPath -Encoding ascii
+
           "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "ZIP_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HASH_PATH=$hashPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "BASE_NAME=$baseName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "SETUP_RELEASE_PATH=$setupReleasePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "SETUP_HASH_PATH=$setupHashPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           Write-Host "Prepared tag: $tag"
           Write-Host "ZIP: $zipPath"
@@ -118,6 +162,8 @@ jobs:
           path: |
             ${{ env.ZIP_PATH }}
             ${{ env.HASH_PATH }}
+            ${{ env.SETUP_RELEASE_PATH }}
+            ${{ env.SETUP_HASH_PATH }}
           if-no-files-found: error
 
       - name: Publish permanent GitHub Release
@@ -141,6 +187,8 @@ jobs:
           gh release create "$env:TAG" `
             "$env:ZIP_PATH" `
             "$env:HASH_PATH" `
+            "$env:SETUP_RELEASE_PATH" `
+            "$env:SETUP_HASH_PATH" `
             --repo "${{ github.repository }}" `
             --target "${{ github.sha }}" `
             --title "BDFR LogonUI Build #${{ github.run_number }} (attempt ${{ github.run_attempt }})" `
