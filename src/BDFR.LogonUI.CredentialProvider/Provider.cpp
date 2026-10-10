@@ -13,6 +13,7 @@ BDFRProvider::BDFRProvider()
 
 BDFRProvider::~BDFRProvider()
 {
+    _secureExperience.Stop();
     ReleaseCredential();
 
     if (_users)
@@ -65,6 +66,7 @@ HRESULT BDFRProvider::SetUsageScenario(
     case CPUS_UNLOCK_WORKSTATION:
         _scenario = scenario;
         ReleaseCredential();
+        _secureExperience.Start();
         return S_OK;
 
     case CPUS_CHANGE_PASSWORD:
@@ -84,11 +86,13 @@ HRESULT BDFRProvider::SetSerialization(
 
 HRESULT BDFRProvider::Advise(ICredentialProviderEvents*, UINT_PTR)
 {
+    _secureExperience.Start();
     return S_OK;
 }
 
 HRESULT BDFRProvider::UnAdvise()
 {
+    _secureExperience.Stop();
     return S_OK;
 }
 
@@ -153,6 +157,7 @@ HRESULT BDFRProvider::GetCredentialCount(
     {
         *count = 1;
         *defaultCredential = 0;
+        _secureExperience.Start();
     }
 
     return FAILED(hr) ? hr : S_OK;
@@ -174,6 +179,7 @@ HRESULT BDFRProvider::GetCredentialAt(
     if (FAILED(hr) || !_credential)
         return FAILED(hr) ? hr : E_UNEXPECTED;
 
+    _secureExperience.Start();
     return _credential->QueryInterface(IID_PPV_ARGS(credential));
 }
 
