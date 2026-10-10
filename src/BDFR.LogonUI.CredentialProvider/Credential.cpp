@@ -12,6 +12,8 @@ BDFRCredential::BDFRCredential()
 
 BDFRCredential::~BDFRCredential()
 {
+    _secureExperience.Stop();
+
     if (_events)
     {
         _events->Release();
@@ -88,11 +90,16 @@ HRESULT BDFRCredential::Advise(ICredentialProviderCredentialEvents* events)
 
     _events = events;
     _events->AddRef();
+
+    // Fail open: if the secure experience cannot launch, LogonUI remains usable.
+    _secureExperience.Start();
     return S_OK;
 }
 
 HRESULT BDFRCredential::UnAdvise()
 {
+    _secureExperience.Stop();
+
     if (_events)
     {
         _events->Release();
@@ -108,11 +115,13 @@ HRESULT BDFRCredential::SetSelected(BOOL* autoLogon)
         return E_POINTER;
 
     *autoLogon = FALSE;
+    _secureExperience.Start();
     return S_OK;
 }
 
 HRESULT BDFRCredential::SetDeselected()
 {
+    _secureExperience.Stop();
     return S_OK;
 }
 
@@ -142,7 +151,7 @@ HRESULT BDFRCredential::GetStringValue(const DWORD fieldId, PWSTR* value)
     switch (fieldId)
     {
     case BFI_PROVIDER_NAME:
-        return SHStrDupW(L"BDFR LogonUI — VM Preview", value);
+        return SHStrDupW(L"BDFR LogonUI", value);
 
     case BFI_STATUS_TEXT:
     {
@@ -151,7 +160,7 @@ HRESULT BDFRCredential::GetStringValue(const DWORD fieldId, PWSTR* value)
         const HRESULT hr = StringCchPrintfW(
             buffer,
             ARRAYSIZE(buffer),
-            L"%s\nCredential Provider V2 loaded. Built-in Microsoft sign-in remains available.",
+            L"%s\nBDFR Secure Lock bridge loaded. Windows remains the authentication authority.",
             name);
 
         return SUCCEEDED(hr) ? SHStrDupW(buffer, value) : hr;
@@ -159,7 +168,7 @@ HRESULT BDFRCredential::GetStringValue(const DWORD fieldId, PWSTR* value)
 
     case BFI_INFO_LINK:
         return SHStrDupW(
-            L"Preview only — BDFR does not collect credentials in this milestone",
+            L"Unlock uses Windows authentication • Esc reveals the Windows sign-in fallback",
             value);
 
     default:
@@ -227,7 +236,7 @@ HRESULT BDFRCredential::GetSerialization(
     *optionalStatusIcon = CPSI_NONE;
 
     return SHStrDupW(
-        L"BDFR VM preview is loaded. Use a built-in Microsoft sign-in option to authenticate.",
+        L"BDFR Secure Lock is visual-only at this stage. Continue with a built-in Windows sign-in option.",
         optionalStatusText);
 }
 
