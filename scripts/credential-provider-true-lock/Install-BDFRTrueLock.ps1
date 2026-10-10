@@ -5,6 +5,8 @@ param(
 
     [string]$ExperiencePath = "$env:ProgramFiles\BDFR\LogonUI\BDFR.LogonUI.Demo.exe",
 
+    [string]$PackagedExperiencePath = (Join-Path $PSScriptRoot "BDFR.LogonUI.Demo.exe"),
+
     [ValidateRange(5, 120)]
     [int]$RollbackMinutes = 15,
 
@@ -77,6 +79,21 @@ if ([Version]$os.Version -lt [Version]"10.0.17763") {
 $resolvedDll = (Resolve-Path $DllPath).Path
 if ([IO.Path]::GetFileName($resolvedDll) -ne "BDFR.LogonUI.CredentialProvider.dll") {
     throw "DllPath must point to BDFR.LogonUI.CredentialProvider.dll."
+}
+
+$experienceInstallRoot = Split-Path -Parent $ExperiencePath
+New-Item -ItemType Directory -Path $experienceInstallRoot -Force | Out-Null
+
+if (Test-Path $PackagedExperiencePath) {
+    $packagedResolved = (Resolve-Path $PackagedExperiencePath).Path
+    if ([IO.Path]::GetFileName($packagedResolved) -ne "BDFR.LogonUI.Demo.exe") {
+        throw "PackagedExperiencePath must point to BDFR.LogonUI.Demo.exe."
+    }
+
+    Get-Process -Name "BDFR.LogonUI.Demo" -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+
+    Copy-Item $packagedResolved $ExperiencePath -Force
 }
 
 $resolvedExperience = (Resolve-Path $ExperiencePath).Path
